@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>EMBER — a wood-fire tasting room</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --char: #16130F;      /* charred black */
+    --cream: #F2EBDD;
+    --ember: #E07A3F;     /* ember copper */
+    --gold: #D9A441;
+    --smoke: #8E867A;
+    --rule: rgba(242,235,221,.16);
+    --rulel: rgba(22,19,15,.14);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { background: var(--char); color: var(--cream);
+    font-family: "Inter", system-ui, sans-serif; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+  ::selection { background: var(--ember); color: #16130F; }
+  img { display: block; max-width: 100%; }
+
+  /* ---------- dinner light: golden hour -> candlelight ---------- */
+  .veil { position: fixed; inset: 0; z-index: 3; pointer-events: none; mix-blend-mode: soft-light; opacity: .9;
+    background: linear-gradient(180deg, var(--vT,#d9a441) 0%, var(--vB,#7a4a26) 100%); }
+  .vign { position: fixed; inset: 0; z-index: 4; pointer-events: none; box-shadow: inset 0 0 230px 40px rgba(8,6,4,.5); }
+
+  /* ---------- nav ---------- */
+  nav { position: fixed; top: 0; left: 0; right: 0; z-index: 40; display: flex; align-items: center; justify-content: space-between;
+    padding: clamp(14px, 2.4vw, 22px) clamp(18px, 4vw, 34px); color: var(--cream); transition: color .5s ease; }
+  nav.dark { color: var(--char); }
+  .brand { font-family: "Cormorant Garamond"; font-weight: 600; font-size: clamp(20px, 2.4vw, 26px); letter-spacing: .3em; }
+  .brand i { color: var(--ember); font-style: normal; }
+  nav .links { display: flex; gap: 22px; font-size: 13px; font-weight: 500; letter-spacing: .04em; opacity: .92; }
+  nav .links a { color: inherit; text-decoration: none; }
+  nav .cta { font-size: 13px; font-weight: 600; letter-spacing: .06em; border: 1px solid currentColor; border-radius: 0;
+    padding: 10px 18px; text-decoration: none; color: inherit; white-space: nowrap; }
+  @media (max-width: 820px){ nav .links { display: none; } }
+
+  /* ---------- the menu card (tracker) ---------- */
+  .menucard { position: fixed; right: 30px; top: 50%; transform: translateY(-50%); z-index: 40;
+    width: 168px; background: rgba(242,235,221,.06); border: 1px solid var(--rule);
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    padding: 16px 16px 14px; pointer-events: none; }
+  .menucard .mh { font-family: "JetBrains Mono"; font-size: 8.5px; letter-spacing: .3em; color: var(--smoke); text-align: center; }
+  .menucard .mt { font-family: "Cormorant Garamond"; font-weight: 600; font-size: 15px; letter-spacing: .22em; text-align: center; margin-top: 4px; padding-bottom: 10px; border-bottom: 1px solid var(--rule); }
+  .menucard ul { list-style: none; margin: 10px 0 0; padding: 0; }
+  .menucard li { position: relative; display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+    font-family: "Cormorant Garamond"; font-size: 14.5px; letter-spacing: .04em;
+    padding: 5.5px 0 5.5px 16px; color: var(--smoke); transition: color .35s ease, transform .35s ease; }
+  /* each course is a coal: unlit -> glowing -> cooled to ash */
+  .menucard li::before { content: ""; position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+    width: 6px; height: 6px; border-radius: 50%;
+    background: transparent; border: 1px solid rgba(142,134,122,.5);      /* unlit coal */
+    transition: all .45s ease; }
+  .menucard li.on { color: var(--cream); transform: translateX(3px); }
+  .menucard li.on::before { background: var(--ember); border-color: var(--ember);
+    box-shadow: 0 0 12px rgba(224,122,63,.95); animation: coalpulse 2s ease-in-out infinite; }
+  @keyframes coalpulse { 0%,100%{ box-shadow: 0 0 8px rgba(224,122,63,.7);} 50%{ box-shadow: 0 0 16px rgba(230,140,70,1);} }
+  .menucard li.done { color: rgba(190,180,164,.85); }
+  .menucard li.done::before { background: #6B655B; border-color: #6B655B; box-shadow: none; }  /* cooled ash */
+  .menucard li .served { font-style: italic; font-size: 11px; letter-spacing: .06em; color: var(--gold);
+    opacity: 0; transform: translateX(6px); transition: opacity .5s ease, transform .5s ease; white-space: nowrap; }
+  .menucard li.done .served { opacity: .95; transform: translateX(0); }
+  @media (prefers-reduced-motion: reduce){ .menucard li.on::before { animation: none; } }
+  .menucard.onlight { background: rgba(22,19,15,.05); border-color: var(--rulel); }
+  .menucard.onlight .mt { color: var(--char); }
+  .menucard.onlight li.on { color: var(--char); }
+  .chip { display: none; }
+  @media (max-width: 900px){
+    .menucard { display: none; }
+    .chip { display: flex; position: fixed; top: calc(env(safe-area-inset-top, 0px) + 62px); left: 50%; transform: translateX(-50%); z-index: 40;
+      align-items: baseline; gap: 8px; background: rgba(22,19,15,.55); color: var(--cream);
+      backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+      border: 1px solid var(--rule); padding: 6px 14px; pointer-events: none; transition: opacity .4s ease; }
+    .chip .rn { font-family: "JetBrains Mono"; font-size: 9px; letter-spacing: .22em; color: var(--ember); }
+    .chip .cn { font-family: "Cormorant Garamond"; font-size: 15px; letter-spacing: .08em; }
+    .chip.hide { opacity: 0; }
+  }
+
+  /* ---------- hero ---------- */
+  .hero { position: relative; height: 100svh; min-height: 560px; overflow: hidden; }
+  .hero .bg { position: absolute; inset: -6%; z-index: 1; background: #1a1510 center/cover no-repeat;
+    background-image: url('https://images.unsplash.com/photo-1552566626-52f8b828add9?auto=format&fit=crop&w=2200&q=80');
+    filter: saturate(.85) brightness(.7) contrast(1.04); will-change: transform; }
+  .hero .scrim { position: absolute; inset: 0; z-index: 2;
+    background: linear-gradient(180deg, rgba(14,11,8,.6) 0%, rgba(14,11,8,.2) 45%, rgba(14,11,8,.82) 100%); }
+  .hero .inner { position: absolute; inset: 0; z-index: 5; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; padding: 0 clamp(18px, 5vw, 24px); }
+  .hero .kick { font-family: "JetBrains Mono"; font-size: 11px; letter-spacing: .34em; text-transform: uppercase; color: var(--gold); will-change: transform, opacity; }
+  .hero h1 { font-family: "Cormorant Garamond"; font-weight: 500; font-size: clamp(44px, 9vw, 128px); line-height: 1.0; letter-spacing: -.01em;
+    margin: 20px 0 0; max-width: 14ch; will-change: transform, opacity; }
+  .hero h1 em { font-style: italic; color: var(--ember); }
+  .hero .tag { margin-top: 20px; font-size: clamp(14.5px, 1.8vw, 18px); max-width: 42ch; opacity: .9; line-height: 1.65; will-change: transform, opacity; }
+  .hero .cue { position: absolute; left: 50%; bottom: 26px; transform: translateX(-50%); z-index: 6; color: #B7AD9C;
+    font-family: "JetBrains Mono"; font-size: 10px; letter-spacing: .26em; text-transform: uppercase;
+    display: flex; flex-direction: column; align-items: center; gap: 9px; }
+  .hero .cue .ln { width: 1px; height: 32px; background: currentColor; animation: cueln 2.6s ease-in-out infinite; transform-origin: top; }
+  @keyframes cueln { 0%,100%{ transform: scaleY(.3); opacity:.4 } 50%{ transform: scaleY(1); opacity:1 } }
+
+  /* ---------- statement (cream) ---------- */
+  .statement { position: relative; background: var(--cream); color: var(--char);
+    padding: clamp(18vh, 24vh, 28vh) clamp(18px, 5vw, 24px); }
+  .statement .in { max-width: 1000px; margin: 0 auto; }
+  .statement p { font-family: "Cormorant Garamond"; font-weight: 500; font-size: clamp(26px, 4.6vw, 56px); line-height: 1.22; margin: 0; }
+  .statement .ln { display: block; overflow: hidden; }
+  .statement .ln span { display: block; will-change: transform, opacity; }
+  .statement .w { font-style: italic; color: var(--ember); }
+
+  /* ---------- the courses ---------- */
+  .courses { position: relative; height: 580vh; }
+  .courses .pin { position: sticky; top: 0; height: 100svh; min-height: 560px; overflow: hidden; background: var(--char); }
+  .cstage { position: absolute; inset: 0; }
+  .dish { position: absolute; inset: 0; z-index: 1; opacity: 0; will-change: opacity; }
+  .dish .im { position: absolute; inset: -7%; background: #1a1510 center/cover no-repeat; will-change: transform;
+    filter: saturate(.92) contrast(1.03) brightness(.86); }
+  .dish .sc { position: absolute; inset: 0;
+    background: linear-gradient(90deg, rgba(12,9,6,.78) 0%, rgba(12,9,6,.38) 46%, rgba(12,9,6,.1) 75%),
+                linear-gradient(0deg, rgba(12,9,6,.55) 0%, rgba(12,9,6,0) 36%); }
+  #emberCv { position: absolute; inset: 0; z-index: 3; width: 100%; height: 100%; pointer-events: none; }
+  #garnishCv { position: absolute; inset: 0; z-index: 4; width: 100%; height: 100%; pointer-events: none; }
+
+  /* wine pour: real footage, scrubbed by scroll */
+  .winevid { position: absolute; z-index: 5; right: clamp(6vw, 10vw, 12vw); top: 50%; transform: translateY(-52%);
+    height: min(64vh, 580px); aspect-ratio: 9/16; border-radius: 14px; overflow: hidden;
+    opacity: 0; pointer-events: none; will-change: opacity;
+    box-shadow: 0 40px 90px -30px rgba(0,0,0,.8), 0 0 0 1px rgba(217,164,65,.22);
+    background: #000; }
+  .winevid video { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .winevid .cap { position: absolute; left: 0; right: 0; bottom: 0; padding: 14px 16px 12px;
+    background: linear-gradient(0deg, rgba(0,0,0,.75), rgba(0,0,0,0));
+    font-family: "JetBrains Mono"; font-size: 9px; letter-spacing: .26em; color: #C9BFAE; text-transform: uppercase; }
+  @media (max-width: 900px){
+    .winevid { right: 50%; transform: translateX(50%); top: 9vh; height: min(42vh, 360px); border-radius: 12px; }
+  }
+
+  /* wine pour (line-art glass fallback) */
+  .pourwrap { position: absolute; z-index: 5; right: clamp(6vw, 10vw, 12vw); top: 50%; transform: translateY(-52%);
+    width: min(24vw, 260px); opacity: 0; pointer-events: none; will-change: opacity; }
+  .pourwrap svg { width: 100%; height: auto; display: block; overflow: visible;
+    filter: drop-shadow(0 18px 30px rgba(0,0,0,.45)); }
+  @media (max-width: 900px){
+    .pourwrap { right: 50%; transform: translateX(50%); top: 12vh; width: min(38vw, 170px); }
+  }
+
+
+
+  .ccopy { position: absolute; z-index: 6; left: clamp(18px, 6vw, 7vw); top: 50%; transform: translateY(-50%);
+    width: min(520px, 44vw); opacity: 0; will-change: transform, opacity; }
+  .ccopy .rn { font-family: "JetBrains Mono"; font-size: 11px; letter-spacing: .3em; color: var(--gold); text-transform: uppercase; }
+  .ccopy .rn::after { content: ""; display: inline-block; width: 44px; height: 1px; background: var(--gold); margin-left: 14px; vertical-align: middle; opacity: .6; }
+  .ccopy h2 { font-family: "Cormorant Garamond"; font-weight: 500; font-size: clamp(38px, 6vw, 92px); line-height: .98; letter-spacing: -.01em; margin: 14px 0 0; }
+  .ccopy h2 em { font-style: italic; color: var(--ember); }
+  .ccopy .desc { margin: 16px 0 0; font-size: clamp(14px, 1.35vw, 17px); color: #D8CFC0; line-height: 1.7; max-width: 38ch; }
+  .ccopy .pair { margin: 18px 0 0; font-family: "Cormorant Garamond"; font-style: italic; font-size: clamp(15px, 1.5vw, 19px); color: var(--gold); }
+  .ccopy .pair::before { content: "— "; }
+  @media (max-width: 900px){
+    .ccopy { left: 16px; right: 16px; width: auto; top: auto; bottom: clamp(22px, 5vh, 48px); transform: none;
+      background: rgba(16,13,10,.62); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+      border: 1px solid var(--rule); padding: 16px 16px 18px; }
+    .ccopy .desc { max-width: none; }
+  }
+
+  /* ---------- the room ---------- */
+  .room { position: relative; background: var(--cream); color: var(--char); padding: clamp(12vh, 15vh, 18vh) clamp(18px, 5vw, 24px); }
+  .room .wrap { max-width: 1120px; margin: 0 auto; }
+  .room .kick { font-family: "JetBrains Mono"; font-size: 11px; letter-spacing: .3em; text-transform: uppercase; color: var(--ember); }
+  .room h2 { font-family: "Cormorant Garamond"; font-weight: 500; font-size: clamp(30px, 4.8vw, 60px); line-height: 1.08; margin: 14px 0 0; max-width: 20ch; }
+  .room h2 em { font-style: italic; color: var(--ember); }
+  .room .grid { margin-top: clamp(30px, 5vw, 54px); display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: clamp(12px, 1.8vw, 20px); }
+  @media (max-width: 860px){ .room .grid { grid-template-columns: 1fr; } }
+  .room .cell { position: relative; overflow: hidden; aspect-ratio: 4/3; background: #ddd; will-change: transform, opacity; }
+  .room .cell img { width: 100%; height: 100%; object-fit: cover; transition: transform .7s cubic-bezier(.2,.8,.2,1); }
+  .room .cell:hover img { transform: scale(1.05); }
+  .room .facts { margin-top: clamp(28px, 4vw, 46px); display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  @media (max-width: 720px){ .room .facts { grid-template-columns: 1fr; } }
+  .room .facts b { font-family: "Cormorant Garamond"; font-weight: 600; font-size: clamp(22px, 2.4vw, 30px); display: block; }
+  .room .facts span { font-size: 13px; color: #6E6558; }
+
+  /* ---------- reserve ---------- */
+  .reserve { position: relative; overflow: hidden; padding: clamp(14vh, 18vh, 22vh) clamp(18px, 5vw, 24px) 7vh; background: #100D0A; }
+  .reserve .glow { position: absolute; left: 50%; bottom: -30%; transform: translateX(-50%); width: min(900px, 120vw); height: 500px;
+    background: radial-gradient(50% 50% at 50% 50%, rgba(224,122,63,.28), rgba(224,122,63,0) 70%); pointer-events: none; }
+  .reserve .wrap { position: relative; max-width: 1080px; margin: 0 auto; }
+  .reserve h2 { font-family: "Cormorant Garamond"; font-weight: 500; font-size: clamp(34px, 6vw, 84px); line-height: 1.0; margin: 0; max-width: 15ch; }
+  .reserve h2 em { font-style: italic; color: var(--ember); }
+  .reserve .sub { margin: 20px 0 0; font-size: clamp(14.5px, 1.6vw, 17.5px); color: #C9BFAE; max-width: 46ch; line-height: 1.65; }
+  .reserve .row { margin-top: clamp(28px, 4vw, 46px); display: flex; gap: 12px; flex-wrap: wrap; }
+  .reserve .go { display: inline-flex; align-items: center; gap: 10px; background: var(--ember); color: #16130F;
+    font-weight: 600; font-size: 15px; padding: 15px 28px; text-decoration: none; }
+  .reserve .alt { display: inline-flex; align-items: center; gap: 10px; color: var(--cream); border: 1px solid var(--rule);
+    font-weight: 600; font-size: 15px; padding: 15px 28px; text-decoration: none; }
+  .reserve .meta { margin-top: clamp(40px, 6vw, 64px); display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;
+    padding-top: 26px; border-top: 1px solid var(--rule); }
+  @media (max-width: 720px){ .reserve .meta { grid-template-columns: 1fr; } }
+  .reserve .meta h4 { font-family: "JetBrains Mono"; font-size: 10px; letter-spacing: .24em; text-transform: uppercase; color: var(--smoke); margin: 0 0 10px; }
+  .reserve .meta p { margin: 0; font-size: 14px; line-height: 1.7; color: #D8CFC0; }
+  .reserve .base { margin-top: clamp(44px, 7vw, 72px); padding-top: 22px; border-top: 1px solid var(--rule);
+    display: flex; justify-content: space-between; font-size: 12px; color: var(--smoke); flex-wrap: wrap; gap: 10px; }
+  .reserve .base .bm { font-family: "Cormorant Garamond"; font-weight: 600; font-size: 18px; letter-spacing: .3em; color: var(--cream); }
+
+  a:focus-visible { outline: 2px solid var(--ember); outline-offset: 3px; }
+  @media (prefers-reduced-motion: reduce){ .hero .cue .ln { animation: none; } }
+</style>
+</head>
+<body>
+
+<div class="veil" id="veil"></div>
+<div class="vign"></div>
+
+<nav id="nav">
+  <div class="brand">EMBER<i>.</i></div>
+  <div class="links"><a href="#">Menu</a><a href="#">The room</a><a href="#">Private dining</a><a href="#">Gift a table</a></div>
+  <a href="#" class="cta">Reserve</a>
+</nav>
+
+<div class="menucard" id="menucard">
+  <div class="mh">TONIGHT</div>
+  <div class="mt">TASTING</div>
+  <ul id="mlist">
+    <li><span>Aperitivo</span><i class="served">served</i></li>
+    <li><span>The hearth</span><i class="served">served</i></li>
+    <li><span>The raw</span><i class="served">served</i></li>
+    <li><span>The fire</span><i class="served">served</i></li>
+    <li><span>The last candle</span><i class="served">served</i></li>
+  </ul>
+</div>
+<div class="chip" id="chip"><span class="rn" id="chipRn">COURSE I</span><span class="cn" id="chipCn">Aperitivo</span></div>
+
+<!-- HERO -->
+<header class="hero" data-hero>
+  <div class="bg" id="heroBg"></div>
+  <div class="scrim"></div>
+  <div class="inner">
+    <div class="kick" id="heroKick">A wood-fire tasting room · 34 seats</div>
+    <h1 id="heroH1">Everything begins <em>at the fire.</em></h1>
+    <p class="tag" id="heroTag">One menu, five courses, one oak fire burning since morning. Scroll to take your seat and dine through tonight's menu.</p>
+  </div>
+  <div class="cue"><span>Scroll to be seated</span><span class="ln"></span></div>
+</header>
+
+<!-- STATEMENT -->
+<section class="statement" data-stmt>
+  <div class="in">
+    <p id="stmt">
+      <span class="ln"><span data-l="0">A menu is a story</span></span>
+      <span class="ln"><span data-l="1">told in courses. Ours is</span></span>
+      <span class="ln"><span data-l="2">written each morning,</span></span>
+      <span class="ln"><span data-l="3"><span class="w">and read by candlelight.</span></span></span>
+    </p>
+  </div>
+</section>
+
+<!-- ===== THE COURSES ===== -->
+<section class="courses" data-courses>
+  <div class="pin">
+    <div class="cstage">
+
+      <div class="dish" data-d="0"><div class="im" style="background-image:url('https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?auto=format&fit=crop&w=2200&q=80')"></div><div class="sc"></div></div>
+      <div class="dish" data-d="1"><div class="im" style="background-image:url('https://images.unsplash.com/photo-1549931319-a545dcf3bc73?auto=format&fit=crop&w=2200&q=80')"></div><div class="sc"></div></div>
+      <div class="dish" data-d="2"><div class="im" style="background-image:url('https://images.unsplash.com/photo-1467003909585-2f8a72700288?auto=format&fit=crop&w=2200&q=80')"></div><div class="sc"></div></div>
+      <div class="dish" data-d="3"><div class="im" style="background-image:url('https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=2200&q=80')"></div><div class="sc"></div></div>
+      <div class="dish" data-d="4"><div class="im" style="background-image:url('https://images.unsplash.com/photo-1488477181946-6428a0291777?auto=format&fit=crop&w=2200&q=80')"></div><div class="sc"></div></div>
+
+      <canvas id="emberCv"></canvas>
+      <canvas id="garnishCv"></canvas>
+
+      <div class="winevid" id="winevid">
+        <video id="pourVideo" muted playsinline preload="auto"
+          src="https://videos.pexels.com/video-files/8093236/8093236-hd_1080_1920_30fps.mp4"></video>
+        <div class="cap">Cava · poured to your scroll</div>
+      </div>
+
+      <div class="pourwrap" id="pourwrap">
+        <svg viewBox="0 -74 200 378">
+          <defs>
+            <linearGradient id="wineg" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#F0D084" stop-opacity=".95"/>
+              <stop offset="1" stop-color="#D9A441" stop-opacity=".9"/>
+            </linearGradient>
+            <linearGradient id="streamg" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#F0D084" stop-opacity="0"/>
+              <stop offset=".25" stop-color="#F0D084" stop-opacity=".9"/>
+              <stop offset="1" stop-color="#F0D084" stop-opacity=".95"/>
+            </linearGradient>
+            <clipPath id="bowlclip"><path d="M57 26 Q57 138 100 150 Q143 138 143 26 Z"/></clipPath>
+          </defs>
+          <!-- tilted bottle, line-art -->
+          <g id="bottle" fill="none" stroke="#F2EBDD" stroke-width="2" stroke-linecap="round" opacity=".85">
+            <path d="M131 -32 L163 -56 M120 -25 L150 -64 M150 -64 Q158 -68 163 -56"/>
+            <path d="M120 -25 Q117 -20 124 -16 Q130 -20 131 -32" opacity=".9"/>
+          </g>
+          <!-- pour stream: fixed x, contained, tapered -->
+          <path id="stream" d="M124 -16 L124 60" stroke="url(#streamg)" stroke-width="3" stroke-linecap="round" opacity="0"/>
+          <path id="stream2" d="M124 -16 L124 60" stroke="#FBEBB8" stroke-width="1.2" stroke-linecap="round" opacity="0"/>
+          <!-- liquid -->
+          <g clip-path="url(#bowlclip)">
+            <rect id="liq" x="50" y="150" width="100" height="130" fill="url(#wineg)"/>
+            <path id="surf" d="M50 150 Q75 148 100 150 T150 150" stroke="#FBEBB8" stroke-width="2" fill="none" opacity="0"/>
+            <g id="bubbles" fill="#FFF6D8" opacity=".85">
+              <circle r="1.7"/><circle r="1.3"/><circle r="1.5"/><circle r="1.2"/><circle r="1.6"/><circle r="1.1"/>
+            </g>
+          </g>
+          <!-- glass line-art -->
+          <g fill="none" stroke="#F2EBDD" stroke-width="2.2" stroke-linecap="round" opacity=".92">
+            <path d="M57 26 Q57 138 100 150 Q143 138 143 26"/>
+            <path d="M57 26 L143 26" opacity=".5"/>
+            <path d="M100 150 L100 238"/>
+            <path d="M64 244 Q100 234 136 244"/>
+          </g>
+        </svg>
+      </div>
+
+      <div class="ccopy" data-cc="0">
+        <div class="rn">Aperitivo</div>
+        <h2>A glass, while <em>you settle.</em></h2>
+        <p class="desc">Cava poured the moment your coat is taken. Warm marcona almonds from the hearth's edge. No menu yet. No hurry at all.</p>
+        <div class="pair">pour: Cava brut nature, disgorged this spring</div>
+      </div>
+      <div class="ccopy" data-cc="1">
+        <div class="rn">Course I</div>
+        <h2>The <em>hearth.</em></h2>
+        <p class="desc">Yesterday's levain, revived over oak coals until the crust cracks. Butter folded with embered onion and cut hay salt.</p>
+        <div class="pair">pour: Txakoli, poured from height</div>
+      </div>
+      <div class="ccopy" data-cc="2">
+        <div class="rn">Course II</div>
+        <h2>The <em>raw.</em></h2>
+        <p class="desc">This morning's catch, sliced thin, dressed only in green olive oil, charred citrus, and the smallest possible amount of smoke.</p>
+        <div class="pair">pour: Albariño, cold as the sea</div>
+      </div>
+      <div class="ccopy" data-cc="3">
+        <div class="rn">Course III</div>
+        <h2>The <em>fire.</em></h2>
+        <p class="desc">Forty days of age, four minutes over white coals, ten of rest. Carved at the table, finished with dripping and thyme.</p>
+        <div class="pair">pour: Rioja Gran Reserva, decanted at six</div>
+      </div>
+      <div class="ccopy" data-cc="4">
+        <div class="rn">Course IV</div>
+        <h2>The <em>last candle.</em></h2>
+        <p class="desc">Basque cheesecake burnt on purpose, cream still trembling. Amaro from the cart. The room is darker now. Stay as long as you like.</p>
+        <div class="pair">pour: Amaro, from the copper cart</div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- THE ROOM -->
+<section class="room" data-room>
+  <div class="wrap">
+    <div class="kick">The room</div>
+    <h2>Thirty-four seats around <em>one fire.</em></h2>
+    <div class="grid">
+      <div class="cell" data-r="0"><img src="https://images.unsplash.com/photo-1514933651103-005eec06c04b?auto=format&fit=crop&w=1400&q=80" alt="The dining room at night"></div>
+      <div class="cell" data-r="1"><img src="https://images.unsplash.com/photo-1577219491135-ce391730fb2c?auto=format&fit=crop&w=1000&q=80" alt="Plating at the pass"></div>
+      <div class="cell" data-r="2"><img src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1000&q=80" alt="A course served"></div>
+    </div>
+    <div class="facts">
+      <div data-f="0"><b>One seating</b><span>7:00, Tuesday through Saturday</span></div>
+      <div data-f="1"><b>Chef's counter</b><span>Six stools at the pass, first come</span></div>
+      <div data-f="2"><b>The whole table</b><span>Menus adapt to any diet, told a day ahead</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- RESERVE -->
+<footer class="reserve">
+  <div class="glow"></div>
+  <div class="wrap">
+    <h2>Tonight, one table <em>is yours.</em></h2>
+    <p class="sub">Five courses, two hours, one fire. Reservations open thirty days out and the counter is always kept for walk-ins.</p>
+    <div class="row">
+      <a href="#" class="go">Reserve a table →</a>
+      <a href="#" class="alt">Call (555) 010-3434</a>
+    </div>
+    <div class="meta">
+      <div><h4>Hours</h4><p>Tue — Sat<br>One seating, 7:00 pm</p></div>
+      <div><h4>Find us</h4><p>12 Coal Lane<br>Old Mill District</p></div>
+      <div><h4>Tonight's menu</h4><p>Posted at 4:00 pm<br>Five courses · $95</p></div>
+    </div>
+    <div class="base"><span class="bm">EMBER</span><span>Everything begins at the fire. © 2026</span></div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function clamp(v,a,b){ return v<a?a:(v>b?b:v); }
+  function band(p,a,b){ return clamp((p-a)/(b-a),0,1); }
+  function smooth(v){ v=clamp(v,0,1); return v*v*(3-2*v); }
+  function lerp(a,b,t){ return a+(b-a)*t; }
+  function mix(c1,c2,t){ return [Math.round(lerp(c1[0],c2[0],t)),Math.round(lerp(c1[1],c2[1],t)),Math.round(lerp(c1[2],c2[2],t))]; }
+  function rgb(c){ return 'rgb('+c[0]+','+c[1]+','+c[2]+')'; }
+
+  var veil=document.getElementById('veil');
+  var nav=document.getElementById('nav'), menucard=document.getElementById('menucard');
+  var mlis=[].slice.call(document.querySelectorAll('#mlist li'));
+  var chip=document.getElementById('chip'), chipRn=document.getElementById('chipRn'), chipCn=document.getElementById('chipCn');
+  var heroBg=document.getElementById('heroBg'), heroKick=document.getElementById('heroKick'), heroH1=document.getElementById('heroH1'), heroTag=document.getElementById('heroTag');
+  var stmt=document.querySelector('[data-stmt]');
+  var stmtLines=[].slice.call(document.querySelectorAll('#stmt [data-l]'));
+  var coursesSec=document.querySelector('[data-courses]');
+  var dishes=[].slice.call(document.querySelectorAll('.dish'));
+  var ccopies=[].slice.call(document.querySelectorAll('.ccopy'));
+  var roomSec=document.querySelector('[data-room]');
+  var pourwrap=document.getElementById('pourwrap');
+  var winevid=document.getElementById('winevid'), pourVideo=document.getElementById('pourVideo');
+  var vidReady=false, vidCur=0.2;
+  if(pourVideo){
+    pourVideo.addEventListener('canplaythrough', function(){ vidReady=true; });
+    pourVideo.addEventListener('error', function(){ vidReady=false; });
+    /* data savers / slow nets: give it a nudge */
+    try { pourVideo.load(); } catch(e){}
+  }
+  var liq=document.getElementById('liq'), surf=document.getElementById('surf'), stream=document.getElementById('stream');
+  var stream2=document.getElementById('stream2');
+  var bubbles=[].slice.call(document.querySelectorAll('#bubbles circle'));
+  var bubPh=bubbles.map(function(){ return { x: 70+Math.random()*60, sp: 14+Math.random()*16, ph: Math.random() }; });
+
+  var cells=[].slice.call(document.querySelectorAll('.room .cell'));
+  var facts=[].slice.call(document.querySelectorAll('.room .facts > div'));
+
+  var RN=['APERITIVO','COURSE I','COURSE II','COURSE III','COURSE IV'];
+  var CN=['Aperitivo','The hearth','The raw','The fire','The last candle'];
+  var WIN=[[0.00,0.20],[0.17,0.40],[0.37,0.60],[0.57,0.80],[0.77,1.00]];
+
+  /* dinner light: golden hour -> deep candlelight */
+  var SKYD=[
+    [0.00,[217,164,65],[160,96,48]],
+    [0.30,[190,130,58],[122,74,38]],
+    [0.60,[150,92,46],[84,50,28]],
+    [0.85,[104,60,34],[52,30,20]],
+    [1.00,[80,44,28],[34,20,14]]
+  ];
+  function skyAt(p){
+    for(var i=0;i<SKYD.length-1;i++){
+      if(p<=SKYD[i+1][0]){
+        var t=smooth(band(p,SKYD[i][0],SKYD[i+1][0]));
+        return [mix(SKYD[i][1],SKYD[i+1][1],t), mix(SKYD[i][2],SKYD[i+1][2],t)];
+      }
+    }
+    return [SKYD[4][1],SKYD[4][2]];
+  }
+
+  var vh=innerHeight, vw=innerWidth, docH=0;
+  function recalc(){ vh=innerHeight; vw=innerWidth; docH=document.body.scrollHeight; emberInit(); }
+
+  /* ---- ember particles ---- */
+  var cv=document.getElementById('emberCv'), ctx=cv?cv.getContext('2d'):null;
+  var EP=[], ew=0, eh=0;
+  function emberInit(){
+    if(!cv) return;
+    ew=cv.width=cv.offsetWidth*devicePixelRatio;
+    eh=cv.height=cv.offsetHeight*devicePixelRatio;
+    EP=[];
+    var n = vw<900 ? 26 : 44;
+    for(var i=0;i<n;i++) EP.push(newEmber(true));
+  }
+  function newEmber(any){
+    return { x:Math.random()*ew, y: any? Math.random()*eh : eh+10,
+      vy:(0.3+Math.random()*0.7)*devicePixelRatio, vx:(Math.random()-0.5)*0.3*devicePixelRatio,
+      r:(Math.random()*1.8+0.8)*devicePixelRatio, ph:Math.random()*6.28, life:Math.random() };
+  }
+  function renderEmbers(t, intensity, visible){
+    if(!ctx || !visible){ if(ctx&&!visible) ctx.clearRect(0,0,ew,eh); return; }
+    ctx.clearRect(0,0,ew,eh);
+    for(var i=0;i<EP.length;i++){
+      var p=EP[i];
+      if(!reduce){ p.y-=p.vy*(0.6+intensity); p.x+=p.vx+Math.sin(t*1.2+p.ph)*0.4*devicePixelRatio; }
+      if(p.y<-12) EP[i]=newEmber(false);
+      var fl=0.55+0.45*Math.sin(t*3+p.ph);
+      var a=(0.28+0.5*intensity)*fl*Math.min(1,(eh-p.y)/eh*2);
+      ctx.fillStyle='rgba(230,130,60,'+a.toFixed(3)+')';
+      ctx.shadowColor='#E07A3F'; ctx.shadowBlur=8*devicePixelRatio;
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.r*(0.7+0.5*fl),0,6.283); ctx.fill();
+    }
+    ctx.shadowBlur=0;
+  }
+
+  /* ---- garnish particles: salt / pepper / sugar that settle on the plate ---- */
+  var gcv=document.getElementById('garnishCv'), gctx=gcv?gcv.getContext('2d'):null;
+  var gw=0, gh=0;
+  var SYS = {
+    1: { max: 130, falling: [], settled: [], kind: 'salt'  },
+    3: { max: 170, falling: [], settled: [], kind: 'pepper'},
+    4: { max: 520, falling: [], settled: [], kind: 'sugar' }
+  };
+  function garnishInit(){
+    if(!gcv) return;
+    gw=gcv.width=gcv.offsetWidth*devicePixelRatio;
+    gh=gcv.height=gcv.offsetHeight*devicePixelRatio;
+    for(var k in SYS){ SYS[k].falling=[]; SYS[k].settled=[]; }
+  }
+  /* soft round dust sprite (pre-rendered radial gradient — no hard pixels) */
+  function makeSprite(r,g,b){
+    var s=document.createElement('canvas'), R=16;
+    s.width=s.height=R*2;
+    var c=s.getContext('2d');
+    var gr=c.createRadialGradient(R,R,0,R,R,R);
+    gr.addColorStop(0,'rgba('+r+','+g+','+b+',1)');
+    gr.addColorStop(0.55,'rgba('+r+','+g+','+b+',.55)');
+    gr.addColorStop(1,'rgba('+r+','+g+','+b+',0)');
+    c.fillStyle=gr; c.fillRect(0,0,R*2,R*2);
+    return s;
+  }
+  var SPR = {
+    sugar:  makeSprite(255,253,247),
+    salt:   makeSprite(246,240,228),
+    pepD:   makeSprite(26,20,15),
+    pepB:   makeSprite(92,64,40)
+  };
+  /* landing zone anchored to the dish in each full-bleed photo (subjects sit centered) */
+  function courseGeom(){
+    var mob = vw<900;
+    return {
+      cx: (mob?0.5:0.54)*gw,
+      cy: (mob?0.44:0.52)*gh,
+      r:  0.17*Math.min(gw,gh)
+    };
+  }
+  function gauss(){ return (Math.random()+Math.random()+Math.random())/3 - 0.5; }
+  function grain(kind){
+    if(kind==='salt')  return { spr:SPR.salt, r:(1.6+Math.random()*1.5), a:(0.6+Math.random()*0.35), vy:2.4, sway:0.5, sx:(0.7+Math.random()*0.6) };
+    if(kind==='pepper')return { spr:(Math.random()<0.55?SPR.pepD:SPR.pepB), r:(1.4+Math.random()*1.8), a:(0.55+Math.random()*0.4), vy:2.9, sway:0.4, sx:(0.6+Math.random()*0.8) };
+    return               { spr:SPR.sugar, r:(0.8+Math.random()*1.0), a:(0.35+Math.random()*0.35), vy:0.8, sway:1.5, sx:1 };  /* sugar: fine soft dust */
+  }
+  var CLUSTER={ salt:0.5, pepper:0.42, sugar:0.4 };
+  function renderGarnish(t, subs, alphas, visible){
+    if(!gctx) return;
+    gctx.clearRect(0,0,gw,gh);
+    if(!visible) return;
+    var G=courseGeom();
+
+    for(var key in SYS){
+      var ci=parseInt(key,10), S=SYS[key];
+      var sub=subs[ci], al=alphas[ci];
+      var target=Math.round(S.max * smooth(band(sub,0.15,0.8)));
+      var cl=CLUSTER[S.kind]*G.r;
+      while(S.settled.length + S.falling.length < target){
+        var g0=grain(S.kind);
+        S.falling.push({ x:G.cx+gauss()*40*devicePixelRatio, y:G.cy-G.r*1.9,
+          lx:G.cx+gauss()*2.2*cl, ly:G.cy+gauss()*2.0*cl,
+          g:g0, ph:Math.random()*6.28, p: reduce?1:0 });
+      }
+      while(S.settled.length + S.falling.length > target){
+        if(S.settled.length) S.settled.pop(); else S.falling.pop();
+      }
+      for(var i=S.falling.length-1;i>=0;i--){
+        var p=S.falling[i];
+        p.p += reduce?1:(0.016*p.g.vy);
+        if(p.p>=1){ S.settled.push(p); S.falling.splice(i,1); }
+      }
+      if(al<0.05) continue;
+
+      /* sugar: soft accumulating powder veil (this is what makes it read as powder) */
+      if(S.kind==='sugar' && S.settled.length>10){
+        var frac=S.settled.length/S.max;
+        var rg=gctx.createRadialGradient(G.cx,G.cy,0,G.cx,G.cy,G.r*0.55);
+        rg.addColorStop(0,'rgba(255,253,247,'+(0.2*frac*al).toFixed(3)+')');
+        rg.addColorStop(0.7,'rgba(255,253,247,'+(0.08*frac*al).toFixed(3)+')');
+        rg.addColorStop(1,'rgba(255,253,247,0)');
+        gctx.fillStyle=rg;
+        gctx.beginPath(); gctx.arc(G.cx,G.cy,G.r*0.55,0,6.283); gctx.fill();
+      }
+
+      for(var i=0;i<S.settled.length;i++) stamp(S.settled[i], S.settled[i].lx, S.settled[i].ly, al, 1);
+      for(var i=0;i<S.falling.length;i++){
+        var p=S.falling[i], e=smooth(p.p);
+        var x=lerp(p.x,p.lx,e)+Math.sin(t*3+p.ph)*p.g.sway*4*devicePixelRatio*(1-e);
+        var y=lerp(p.y,p.ly,e*e);
+        stamp(p, x, y, al, 1);
+      }
+    }
+
+    /* ---- olive oil: chef's drizzle — parallel serpentine passes, glossy, blended into the photo ---- */
+    var subO=subs[2], alO=alphas[2];
+    if(alO>0.05){
+      var s0=0.15, s1=Math.min(subO,0.8);
+      if(s1>s0){
+        var N=90, pts=[];
+        for(var i=0;i<=N;i++){
+          var s=s0+(s1-s0)*(i/N);
+          var q=band(s,s0,0.8);
+          /* rows: sweep left-right while advancing steadily down the dish */
+          var env=Math.sin(Math.min(1,q*6)*Math.PI/2);              /* ease the first sweep in */
+          var ox=G.cx + Math.sin(q*Math.PI*3.2)*G.r*0.5*env;
+          var oy=G.cy - G.r*0.42 + q*G.r*0.84 + Math.sin(q*17)*G.r*0.03;
+          pts.push([ox,oy]);
+        }
+        function strokePts(style,w,comp){
+          gctx.globalCompositeOperation=comp;
+          gctx.strokeStyle=style; gctx.lineWidth=w*devicePixelRatio;
+          gctx.lineCap='round'; gctx.lineJoin='round';
+          gctx.beginPath(); gctx.moveTo(pts[0][0],pts[0][1]);
+          for(var i=1;i<pts.length;i++) gctx.lineTo(pts[i][0],pts[i][1]);
+          gctx.stroke();
+          gctx.globalCompositeOperation='source-over';
+        }
+        /* warm body (barely there), wide soft sheen, bright glossy core */
+        strokePts('rgba(150,108,30,'+(0.28*alO).toFixed(3)+')', 2.6, 'source-over');
+        strokePts('rgba(240,204,120,'+(0.22*alO).toFixed(3)+')', 6.5, 'screen');
+        strokePts('rgba(255,238,190,'+(0.55*alO).toFixed(3)+')', 1.3, 'screen');
+        /* specular glints along the drizzle */
+        gctx.globalCompositeOperation='screen';
+        for(var i=6;i<pts.length;i+=9){
+          gctx.fillStyle='rgba(255,248,220,'+(0.5*alO).toFixed(3)+')';
+          gctx.beginPath(); gctx.arc(pts[i][0],pts[i][1],1.1*devicePixelRatio,0,6.283); gctx.fill();
+        }
+        gctx.globalCompositeOperation='source-over';
+        /* the falling stream while drizzling */
+        if(subO>s0 && subO<0.8 && !reduce){
+          var end=pts[pts.length-1];
+          gctx.globalCompositeOperation='screen';
+          gctx.strokeStyle='rgba(240,204,120,'+(0.7*alO).toFixed(3)+')';
+          gctx.lineWidth=1.8*devicePixelRatio; gctx.lineCap='round';
+          gctx.beginPath();
+          gctx.moveTo(end[0]+Math.sin(t*7)*1.2*devicePixelRatio, G.cy-G.r*1.9);
+          gctx.quadraticCurveTo(end[0], (G.cy-G.r*1.9+end[1])/2, end[0], end[1]);
+          gctx.stroke();
+          gctx.fillStyle='rgba(255,248,220,'+(0.6*alO).toFixed(3)+')';
+          gctx.beginPath(); gctx.arc(end[0],end[1],1.8*devicePixelRatio,0,6.283); gctx.fill();
+          gctx.globalCompositeOperation='source-over';
+        }
+      }
+    }
+  }
+  function stamp(p,x,y,al,mul){
+    var d=p.g.r*devicePixelRatio*2.6;
+    gctx.globalAlpha=p.g.a*al*mul;
+    gctx.drawImage(p.g.spr, x-d/2*(p.g.sx||1), y-d/2, d*(p.g.sx||1), d);
+    gctx.globalAlpha=1;
+  }
+
+  recalc();
+  garnishInit();
+  window.addEventListener('resize', function(){ recalc(); garnishInit(); });
+
+  function loop(now){
+    var t=now/1000;
+    var y=window.scrollY||pageYOffset;
+    var gp=clamp(y/Math.max(1,docH-vh),0,1);
+
+    var sky=skyAt(gp);
+    veil.style.setProperty('--vT',rgb(sky[0]));
+    veil.style.setProperty('--vB',rgb(sky[1]));
+
+    /* hero */
+    var hp=clamp(y/vh,0,1);
+    heroBg.style.transform='translateY('+(hp*14).toFixed(1)+'%) scale('+(1.05+hp*0.1).toFixed(3)+')';
+    var hf=1-smooth(band(hp,0,.6));
+    heroKick.style.opacity=hf;
+    heroH1.style.opacity=hf; heroH1.style.transform='translateY('+(hp*-50)+'px)';
+    heroTag.style.opacity=1-smooth(band(hp,0,.46)); heroTag.style.transform='translateY('+(hp*-32)+'px)';
+
+    /* statement */
+    var sr=stmt.getBoundingClientRect();
+    var sp=clamp((vh*.85-sr.top)/(sr.height*.7+vh*.5),0,1);
+    stmtLines.forEach(function(el,i){ var a=.08+i*.14, r=smooth(band(sp,a,a+.22)); el.style.opacity=r; el.style.transform='translateY('+((1-r)*100)+'%)'; });
+
+    /* ===== courses ===== */
+    var cr=coursesSec.getBoundingClientRect(), ctot=coursesSec.offsetHeight-vh;
+    var cp=clamp((-cr.top)/Math.max(1,ctot),0,1);
+    var inCourses = cr.top < vh*0.5 && cr.bottom > vh*0.5;
+
+    var alphas=[], subs=[];
+    for(var i=0;i<5;i++){
+      var w=WIN[i], mid=(w[0]+w[1])/2, half=(w[1]-w[0])/2;
+      var d=(cp-mid)/half;
+      var al=smooth(1-Math.abs(clamp(d,-1,1)));
+      if(i===0 && cp<mid && cr.top<vh*0.25) al=Math.max(al, smooth(band(-cr.top/(vh*0.5),0,1))*(1-smooth(band(cp,w[1]-0.05,w[1]))));
+      if(i===4 && cp>=mid) al=1;
+      alphas.push(al); subs.push(band(cp,w[0],w[1]));
+    }
+    dishes.forEach(function(dd,i){
+      dd.style.opacity=alphas[i].toFixed(3);
+      dd.style.zIndex=alphas[i]>.5?2:1;
+      var im=dd.querySelector('.im');
+      var s=subs[i];
+      var idle=reduce?0:Math.sin(t*0.15+i)*0.4;
+      im.style.transform='scale('+lerp(1.16,1.04,smooth(s)).toFixed(3)+') rotate('+(lerp(-1.2,1.2,s)+idle).toFixed(2)+'deg)';
+    });
+    ccopies.forEach(function(c,i){
+      var al=alphas[i];
+      c.style.opacity=al.toFixed(3);
+      c.style.pointerEvents=al>.5?'auto':'none';
+      var base = vw<900 ? '' : 'translateY(-50%) ';
+      c.style.transform=base+'translateY('+((1-al)*24).toFixed(1)+'px)';
+      c.style.zIndex=al>.5?7:6;
+    });
+
+    /* embers: intensity peaks at the fire course */
+    var intensity=0.25 + 0.75*alphas[3] + 0.2*alphas[1];
+    renderEmbers(t, clamp(intensity,0,1), inCourses);
+
+    /* garnish particles: salt on the hearth, pepper on the fire, sugar on dessert */
+    renderGarnish(t, subs, alphas, inCourses);
+
+    /* aperitivo: real footage scrubbed by scroll (SVG glass as fallback) */
+    if(winevid){
+      var useVid = vidReady && pourVideo.duration > 0.5;
+      winevid.style.opacity=(useVid?alphas[0]:0).toFixed(3);
+      if(pourwrap) pourwrap.style.opacity=(useVid?0:alphas[0]).toFixed(3);
+      if(useVid && alphas[0]>0.02){
+        if(!pourVideo.paused) pourVideo.pause();
+        var span=Math.max(0.4, pourVideo.duration-0.5);
+        var vt=0.2 + span*smooth(band(subs[0],0.06,0.92));
+        vidCur += (vt-vidCur)*0.2;
+        if(Math.abs(pourVideo.currentTime - vidCur) > 0.033){
+          try { pourVideo.currentTime = vidCur; } catch(e){}
+        }
+      }
+    } else if(pourwrap){ pourwrap.style.opacity=alphas[0].toFixed(3); }
+    if(pourwrap){
+      var fillv=smooth(band(subs[0],0.12,0.82));
+      var topY=150-124*fillv;
+      liq.setAttribute('y',topY.toFixed(1));
+      var wob=reduce?0:Math.sin(t*2.2)*2.2*(0.3+fillv);
+      surf.setAttribute('d','M50 '+topY.toFixed(1)+' Q75 '+(topY+wob).toFixed(1)+' 100 '+topY.toFixed(1)+' T150 '+topY.toFixed(1));
+      surf.setAttribute('opacity',(fillv>0.03?0.9:0));
+      var pouring=(subs[0]>0.1 && subs[0]<0.8 && alphas[0]>0.3);
+      var sOp=pouring?1:0;
+      stream.setAttribute('opacity',sOp*0.95);
+      stream2.setAttribute('opacity',sOp*0.7);
+      if(pouring){
+        /* fixed x, gentle mid-sway only, always ends inside the bowl at the surface */
+        var sway=reduce?0:Math.sin(t*6)*1.6;
+        var dStr='M124 -16 Q'+(124+sway).toFixed(1)+' '+((-16+topY)/2).toFixed(1)+' 124 '+(topY-1).toFixed(1);
+        stream.setAttribute('d',dStr);
+        stream2.setAttribute('d',dStr);
+      }
+      bubbles.forEach(function(b,i){
+        var bp=bubPh[i];
+        if(fillv<0.08 || reduce){ b.setAttribute('opacity',0); return; }
+        var span2=150-topY;
+        var yy=150 - ((t*bp.sp + bp.ph*span2) % span2);
+        b.setAttribute('opacity', yy>topY+4 ? 0.85 : 0);
+        b.setAttribute('cx',(bp.x+Math.sin(t*2+i)*1.6).toFixed(1));
+        b.setAttribute('cy',yy.toFixed(1));
+      });
+    }
+
+    /* menu card + chip */
+    var stageI=0;
+    for(var i=0;i<5;i++){ if(cp>=(WIN[i][0]+WIN[i][1])/2) stageI=i; }
+    mlis.forEach(function(li,i){
+      li.classList.toggle('on', i===stageI && inCourses);
+      li.classList.toggle('done', inCourses ? i<stageI : cp>=1);
+    });
+    chipRn.textContent=RN[stageI]; chipCn.textContent=CN[stageI];
+    chip.classList.toggle('hide', !inCourses);
+
+    /* nav + menucard over light sections */
+    var rr=roomSec.getBoundingClientRect();
+    var overLight = (y+60 > stmt.offsetTop && y+60 < stmt.offsetTop+stmt.offsetHeight) ||
+                    (rr.top < 70 && rr.bottom > 70);
+    nav.classList.toggle('dark', overLight);
+    menucard.classList.toggle('onlight', overLight);
+
+    /* room reveals */
+    var rp=clamp((vh*.85-rr.top)/(vh*.9),0,1);
+    cells.forEach(function(c,i){
+      var r=smooth(band(rp,0.05+i*0.1,0.4+i*0.1));
+      c.style.opacity=r; c.style.transform='translateY('+((1-r)*36)+'px)';
+    });
+    facts.forEach(function(f,i){
+      var r=smooth(band(rp,0.3+i*0.1,0.6+i*0.1));
+      f.style.opacity=r; f.style.transform='translateY('+((1-r)*22)+'px)';
+    });
+
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

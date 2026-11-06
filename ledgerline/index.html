@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Ledgerline — a year, compressed</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ice: #F4F6F8;
+    --ink: #0E1116;
+    --cobalt: #1F4FFF;
+    --red: #D63B2F;
+    --mut: #6B7280;
+    --rule: rgba(14,17,22,.1);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { background: var(--ice); color: var(--ink);
+    font-family: "Inter", system-ui, sans-serif; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+  ::selection { background: var(--cobalt); color: #fff; }
+
+  /* ---------- nav ---------- */
+  nav { position: fixed; top: 0; left: 0; right: 0; z-index: 40; display: flex; align-items: center; justify-content: space-between;
+    padding: clamp(14px, 2.4vw, 20px) clamp(18px, 4vw, 34px); color: var(--ink); }
+  .brand { font-family: "Space Grotesk"; font-weight: 700; font-size: clamp(17px, 2.2vw, 20px); letter-spacing: .01em; display: flex; align-items: center; gap: 9px; }
+  .brand i { width: 10px; height: 10px; background: var(--cobalt); display: inline-block; }
+  nav .links { display: flex; gap: 22px; font-size: 13.5px; font-weight: 500; color: #4B5563; }
+  nav .links a { color: inherit; text-decoration: none; }
+  nav .cta { font-size: 13px; font-weight: 600; background: var(--ink); color: #fff; padding: 10px 18px; text-decoration: none; }
+  @media (max-width: 820px){ nav .links { display: none; } }
+
+  /* ---------- the running number (tracker) ---------- */
+  .rn { position: fixed; right: 30px; top: 50%; transform: translateY(-50%); z-index: 40; text-align: right; pointer-events: none; }
+  .rn .mo { font-family: "JetBrains Mono"; font-size: 11px; letter-spacing: .3em; color: var(--mut); }
+  .rn .amt { font-family: "JetBrains Mono"; font-weight: 700; font-size: clamp(22px, 2.4vw, 30px); margin-top: 6px;
+    font-variant-numeric: tabular-nums; color: var(--red); transition: color .4s ease; }
+  .rn .amt.pos { color: var(--cobalt); }
+  .rn .lbl { font-family: "JetBrains Mono"; font-size: 9px; letter-spacing: .24em; color: var(--mut); margin-top: 4px; text-transform: uppercase; }
+  .rn .rail { margin-top: 12px; margin-left: auto; width: 120px; height: 2px; background: rgba(14,17,22,.12); position: relative; }
+  .rn .rail i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--cobalt); width: 0; }
+  @media (max-width: 900px){
+    .rn { right: auto; left: 50%; transform: translateX(-50%); top: calc(env(safe-area-inset-top, 0px) + 60px);
+      text-align: center; background: rgba(244,246,248,.85); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+      border: 1px solid var(--rule); padding: 8px 16px 10px; transition: opacity .4s ease; }
+    .rn .rail { margin: 8px auto 0; }
+    .rn.hide { opacity: 0; }
+  }
+
+  /* ---------- hero ---------- */
+  .hero { position: relative; height: 100svh; min-height: 600px; overflow: hidden; background: var(--deepnavy, #0B1830); }
+  /* full-bleed crossfading slideshow */
+  .slides { position: absolute; inset: 0; z-index: 1; }
+  .slides .sl { position: absolute; inset: 0; background: #0B1830 center/cover no-repeat; opacity: 0;
+    will-change: opacity, transform; transform: scale(1.06); }
+  .slides .sl.on { opacity: 1; }
+  .hero .tint { position: absolute; inset: 0; z-index: 2; pointer-events: none;
+    background:
+      linear-gradient(180deg, rgba(9,16,30,.5) 0%, rgba(9,16,30,.28) 38%, rgba(9,16,30,.86) 100%),
+      linear-gradient(90deg, rgba(9,16,30,.7) 0%, rgba(9,16,30,.15) 55%, rgba(9,16,30,0) 100%); }
+  /* soft blurred gradient mesh (Stripe-style glow) */
+  .hero .mesh { position: absolute; inset: 0; z-index: 2; pointer-events: none; opacity: .7; mix-blend-mode: screen;
+    background:
+      radial-gradient(40% 50% at 18% 30%, rgba(31,79,255,.5), rgba(31,79,255,0) 70%),
+      radial-gradient(36% 44% at 82% 66%, rgba(120,90,255,.4), rgba(120,90,255,0) 70%);
+    filter: blur(20px); will-change: transform; }
+  #heroCurve { position: absolute; left: 0; right: 0; bottom: 0; height: 60%; z-index: 3; will-change: transform, opacity; }
+  #heroCurve svg { width: 100%; height: 100%; display: block; }
+  .herostat { position: absolute; right: clamp(18px, 6vw, 7vw); top: 12%; z-index: 4; text-align: right; pointer-events: none; }
+  .herostat .hslabel { display: block; font-family: "JetBrains Mono"; font-size: 10.5px; letter-spacing: .2em; text-transform: uppercase; color: #9DB8FF; }
+  .herostat .hslabel b { color: #C9D3E6; font-weight: 500; }
+  .herostat .hsnum { display: block; font-family: "Space Grotesk"; font-weight: 700; font-size: clamp(38px, 6vw, 76px); line-height: 1; letter-spacing: -.03em; margin-top: 8px;
+    font-variant-numeric: tabular-nums; transition: color .3s ease; }
+  .herostat .hsnum.neg { color: #FF7063; }
+  .herostat .hsnum.pos { color: #6E9BFF; }
+  @media (max-width: 760px){
+    #heroCurve { height: 62%; }
+    .herostat { left: clamp(18px, 6vw, 7vw); right: auto; top: auto; bottom: 40%; text-align: left; }
+    .herostat .hsnum { font-size: clamp(40px, 12vw, 60px); }
+  }
+  .hero .inner { position: relative; z-index: 5; padding: clamp(96px, 16vh, 150px) clamp(18px, 6vw, 7vw) 0; max-width: 1200px; }
+  /* hero text goes light over photography */
+  .hero .kick { color: #9DB8FF !important; }
+  .hero h1 { color: #F7FAFF; text-shadow: 0 2px 40px rgba(0,0,0,.35); }
+  .hero .tag { color: #C9D3E6 !important; }
+  .hero .cue { color: #9AA6BD !important; }
+  /* slideshow dots */
+  .sldots { position: absolute; right: clamp(18px, 6vw, 7vw); bottom: 30px; z-index: 6; display: flex; gap: 8px; }
+  .sldots i { width: 22px; height: 3px; border-radius: 2px; background: rgba(247,250,255,.3); transition: background .4s ease; }
+  .sldots i.on { background: var(--cobalt); }
+  @media (max-width: 700px){ .sldots { left: clamp(18px, 6vw, 7vw); right: auto; bottom: 64px; } }
+  .hero .kick { font-family: "JetBrains Mono"; font-size: 11.5px; letter-spacing: .3em; text-transform: uppercase; color: var(--cobalt); font-weight: 500; will-change: transform, opacity; }
+  .hero h1 { font-family: "Space Grotesk"; font-weight: 600; font-size: clamp(38px, 7vw, 100px); line-height: 1.0; letter-spacing: -.035em;
+    margin: 20px 0 0; max-width: 15ch; will-change: transform, opacity; }
+  .hero h1 .c { color: var(--cobalt); }
+  .hero .tag { margin-top: 22px; font-size: clamp(14.5px, 1.8vw, 18.5px); max-width: 46ch; color: #4B5563; line-height: 1.65; will-change: transform, opacity; }
+  .hero .cue { position: absolute; left: clamp(18px, 6vw, 7vw); bottom: 26px; z-index: 6; color: var(--mut);
+    font-family: "JetBrains Mono"; font-size: 10px; letter-spacing: .26em; text-transform: uppercase; display: flex; align-items: center; gap: 12px; }
+  .hero .cue .ln { width: 40px; height: 1px; background: currentColor; animation: cuew 2.6s ease-in-out infinite; transform-origin: left; }
+  @keyframes cuew { 0%,100%{ transform: scaleX(.3); opacity:.4 } 50%{ transform: scaleX(1); opacity:1 } }
+
+  /* ---------- statement ---------- */
+  .statement { position: relative; padding: clamp(18vh, 24vh, 28vh) clamp(18px, 5vw, 24px); max-width: 1020px; margin: 0 auto; }
+  .statement p { font-family: "Space Grotesk"; font-weight: 500; font-size: clamp(25px, 4.4vw, 52px); line-height: 1.2; letter-spacing: -.02em; margin: 0; }
+  .statement .ln { display: block; overflow: hidden; }
+  .statement .ln span { display: block; will-change: transform, opacity; }
+  .statement .c { color: var(--cobalt); }
+
+  /* ---------- the year ---------- */
+  .year { position: relative; height: 620vh; }
+  .year .pin { position: sticky; top: 0; height: 100svh; min-height: 560px; overflow: hidden; background: var(--ice); }
+  .ystage { position: absolute; inset: 0; }
+  .ystage .gridbg { opacity: .4; }
+
+  /* animated fiscal-flow backdrop (fills the dead middle band) */
+  #yearBg { position: absolute; inset: 0; z-index: 1; overflow: hidden; }
+  #yearBg .wash { position: absolute; inset: 0; will-change: transform; opacity: .95;
+    background:
+      radial-gradient(58% 74% at 44% 44%, rgba(31,79,255,.12), rgba(31,79,255,0) 70%),
+      radial-gradient(46% 56% at 30% 66%, rgba(120,90,255,.10), rgba(120,90,255,0) 70%); }
+  #yearBg canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  #yearBg .photo { position: absolute; inset: 0; background: center/cover no-repeat; display: none; }
+  #yearBg .edge { position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(90deg,
+      rgba(244,246,248,.5) 0%, rgba(244,246,248,.08) 24%, rgba(244,246,248,0) 46%,
+      rgba(244,246,248,.55) 66%, rgba(244,246,248,.9) 82%, var(--ice) 96%); }
+  #yearBg.off { display: none; }
+  @media (max-width: 900px){
+    #yearBg .edge { background: linear-gradient(180deg, rgba(244,246,248,.15) 0%, rgba(244,246,248,0) 34%, rgba(244,246,248,.85) 74%, var(--ice) 100%); }
+  }
+
+  /* month ruler: glassy capsule rail */
+  .ruler { position: absolute; left: clamp(18px, 6vw, 7vw); right: clamp(18px, 6vw, 7vw); top: clamp(78px, 12vh, 108px); z-index: 4; }
+  .ruler .cap { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 30px;
+    font-family: "JetBrains Mono"; font-size: 9px; letter-spacing: .26em; text-transform: uppercase; color: rgba(107,114,128,.85); }
+  .ruler .cap .yr { color: var(--ink); font-weight: 700; letter-spacing: .18em; }
+  .ruler .line { height: 7px; border-radius: 99px; position: relative;
+    background: linear-gradient(180deg, rgba(14,17,22,.10), rgba(14,17,22,.04));
+    box-shadow: inset 0 1px 2px rgba(14,17,22,.12), 0 1px 0 rgba(255,255,255,.6); }
+  .ruler .line .fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 99px;
+    background: linear-gradient(90deg, #4E79FF, var(--cobalt)); width: 0;
+    box-shadow: 0 0 16px rgba(31,79,255,.4); overflow: hidden; }
+  .ruler .line .fill::before { content: ""; position: absolute; inset: 0; border-radius: 99px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,.5), transparent);
+    transform: translateX(-100%); animation: sheen 3.4s ease-in-out infinite; }
+  @keyframes sheen { 0%{ transform: translateX(-100%);} 55%,100%{ transform: translateX(220%);} }
+  .ruler .line .fill::after { content: ""; position: absolute; right: -1px; top: 50%; width: 11px; height: 11px; border-radius: 50%;
+    transform: translateY(-50%); background: #fff; box-shadow: 0 0 14px rgba(31,79,255,.9), 0 0 0 3px rgba(31,79,255,.85); }
+  /* month ticks below the rail */
+  .ruler .tick { position: absolute; top: 11px; width: 1px; height: 5px; border-radius: 1px; background: rgba(14,17,22,.14); }
+  .ruler .tick.q { height: 9px; width: 1.5px; background: rgba(31,79,255,.35); }
+  /* estimated-payment checkpoints: dot on the rail, label only when active */
+  .ruler .est { position: absolute; top: 50%; width: 11px; height: 11px; border-radius: 50%; margin-top: -1.5px;
+    transform: translate(-50%,-50%); background: #fff; border: 2px solid rgba(31,79,255,.5);
+    box-shadow: 0 1px 3px rgba(14,17,22,.2); transition: all .35s ease; z-index: 2; }
+  .ruler .est.lit { background: var(--cobalt); border-color: #fff; box-shadow: 0 0 12px rgba(31,79,255,.85), 0 0 0 3px rgba(31,79,255,.2); transform: translate(-50%,-50%) scale(1.15); }
+  .ruler .est i { position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%) translateY(4px); white-space: nowrap;
+    font-family: "JetBrains Mono"; font-style: normal; font-size: 8px; letter-spacing: .16em; color: var(--cobalt);
+    background: var(--ice); padding: 2px 5px; border-radius: 4px; opacity: 0; transition: all .3s ease; box-shadow: 0 4px 10px -4px rgba(31,79,255,.4); }
+  .ruler .est.lit i { opacity: 1; transform: translateX(-50%) translateY(0); }
+  /* deadline flag */
+  .ruler .flag { position: absolute; right: 0; top: 50%; transform: translate(50%,-50%); z-index: 2; }
+  .ruler .flag b { display: block; font-family: "JetBrains Mono"; font-size: 8.5px; letter-spacing: .14em; font-weight: 700;
+    padding: 5px 9px; border-radius: 6px; border: 1.5px solid rgba(14,17,22,.22); color: var(--mut); background: var(--ice); transition: all .4s ease;
+    position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%); white-space: nowrap; }
+  .ruler .flag::after { content: ""; position: absolute; left: 50%; top: 50%; width: 11px; height: 11px; border-radius: 50%; transform: translate(-50%,-50%);
+    background: #fff; border: 2px solid rgba(14,17,22,.25); transition: all .4s ease; }
+  .ruler .flag.lit b { border-color: var(--cobalt); color: #fff; background: var(--cobalt); box-shadow: 0 6px 16px -6px rgba(31,79,255,.7); }
+  .ruler .flag.lit::after { background: var(--cobalt); border-color: #fff; box-shadow: 0 0 12px rgba(31,79,255,.8); }
+  /* the traveling month pill (now shows amount too) */
+  .ruler .handle { position: absolute; top: -22px; transform: translateX(-50%); left: 0; pointer-events: none; z-index: 5; transition: none; }
+  .ruler .handle .pill { display: flex; align-items: baseline; gap: 7px; font-family: "JetBrains Mono"; font-weight: 700;
+    color: #fff; background: linear-gradient(180deg, #3E6BFF, var(--cobalt)); padding: 6px 12px 5px; border-radius: 99px;
+    box-shadow: 0 12px 26px -10px rgba(31,79,255,.75), inset 0 1px 0 rgba(255,255,255,.3); white-space: nowrap; }
+  .ruler .handle .pill .mo { font-size: 10.5px; letter-spacing: .12em; }
+  .ruler .handle .pill .am { font-size: 10px; opacity: .82; font-weight: 500; }
+  .ruler .handle i { display: block; margin: -1px auto 0; width: 0; height: 0;
+    border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 7px solid var(--cobalt);
+    filter: drop-shadow(0 3px 3px rgba(31,79,255,.4)); }
+  .ruler .mos { position: relative; display: block; margin-top: 22px; height: 12px; }
+  .ruler .mos span { position: absolute; transform: translateX(-50%); font-family: "JetBrains Mono"; font-size: 9px;
+    letter-spacing: .1em; color: rgba(107,114,128,.65); transition: color .3s ease, transform .3s ease; }
+  .ruler .mos span.near { color: var(--cobalt); font-weight: 700; transform: translateX(-50%) translateY(-1px); }
+  @media (max-width: 760px){
+    .ruler { top: clamp(72px, 10.5vh, 100px); }
+    .ruler .cap { margin-bottom: 26px; font-size: 8px; letter-spacing: .18em; }
+    .ruler .est i { display: none; }
+    .ruler .flag b { font-size: 7.5px; padding: 4px 6px; letter-spacing: .08em; }
+    .ruler .handle { top: -20px; }
+    .ruler .handle .pill { padding: 5px 10px 4px; }
+    .ruler .handle .pill .mo { font-size: 9.5px; }
+    .ruler .handle .pill .am { display: none; }              /* keep pill compact on mobile */
+    .ruler .mos { margin-top: 18px; }
+    .ruler .mos span { font-size: 8px; }
+  }
+
+  .yact { position: absolute; inset: 0; z-index: 5; opacity: 0; will-change: opacity; }
+  .ycopy { position: absolute; left: clamp(18px, 6vw, 7vw); top: 50%; transform: translateY(-50%); width: min(480px, 40vw); }
+  .ycopy .num { font-family: "JetBrains Mono"; font-size: 11px; letter-spacing: .24em; color: var(--cobalt); text-transform: uppercase; }
+  .ycopy h2 { font-family: "Space Grotesk"; font-weight: 600; font-size: clamp(30px, 4.2vw, 58px); line-height: 1.04; letter-spacing: -.025em; margin: 12px 0 0; }
+  .ycopy h2 .c { color: var(--cobalt); }
+  .ycopy .lead { margin: 16px 0 0; font-size: clamp(14px, 1.3vw, 16.5px); color: #4B5563; line-height: 1.65; max-width: 36ch; }
+  @media (min-width: 901px){
+    .yact:not([data-y="4"]) .ycopy { background: rgba(247,249,252,.62); backdrop-filter: blur(10px) saturate(1.1); -webkit-backdrop-filter: blur(10px) saturate(1.1);
+      border: 1px solid rgba(255,255,255,.7); border-radius: 18px; padding: 26px 28px 28px; width: min(480px, 42vw);
+      box-shadow: 0 30px 70px -40px rgba(14,17,22,.35), inset 0 1px 0 rgba(255,255,255,.8); }
+  }
+  @media (max-width: 900px){
+    .ycopy { left: 16px; right: 16px; width: auto; top: auto; bottom: clamp(22px, 5vh, 48px); transform: none;
+      background: rgba(244,246,248,.9); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+      border: 1px solid var(--rule); padding: 16px 16px 18px; }
+    .ycopy .lead { max-width: none; }
+  }
+
+  /* act props: right-side panel area */
+  .prop { position: absolute; right: clamp(18px, 6vw, 7vw); top: 50%; transform: translateY(-50%); width: min(440px, 38vw); }
+  @media (max-width: 900px){
+    .prop { right: 14px; left: auto; top: clamp(120px, 18vh, 170px); transform: none; width: min(320px, 74vw); }
+  }
+
+  /* act 0: the shoebox docs */
+  .docpile { position: relative; height: min(52vh, 480px); }
+  .pdoc { position: absolute; left: 8%; right: 8%; background: #fff; border: 1px solid var(--rule);
+    box-shadow: 0 20px 40px -24px rgba(14,17,22,.3); padding: 14px 16px; will-change: transform, opacity;
+    font-family: "JetBrains Mono"; font-size: 10.5px; color: #4B5563; }
+  .pdoc b { display: block; font-family: "Space Grotesk"; font-size: 13.5px; font-weight: 600; letter-spacing: .01em; color: var(--ink); margin-bottom: 3px; }
+  .pdoc .tag2 { position: absolute; right: 12px; top: 12px; font-size: 8.5px; letter-spacing: .18em; color: var(--cobalt); }
+
+  /* act 1: deduction ledger */
+  .ledger { background: #fff; border: 1px solid var(--rule); box-shadow: 0 26px 50px -30px rgba(14,17,22,.3); padding: clamp(18px, 2.2vw, 28px); }
+  .ledger .lh { font-family: "JetBrains Mono"; font-size: 9.5px; letter-spacing: .24em; color: var(--mut); text-transform: uppercase;
+    padding-bottom: 12px; border-bottom: 1px solid var(--rule); display: flex; justify-content: space-between; }
+  .lrow { display: flex; justify-content: space-between; align-items: baseline; padding: 11px 0; border-bottom: 1px dashed rgba(14,17,22,.1);
+    will-change: transform, opacity; }
+  .lrow .n { font-size: 13px; font-weight: 500; }
+  .lrow .n span { display: block; font-size: 10.5px; color: var(--mut); font-weight: 400; margin-top: 1px; }
+  .lrow .v { font-family: "JetBrains Mono"; font-size: 13.5px; font-weight: 700; color: var(--cobalt); font-variant-numeric: tabular-nums; }
+
+  /* act 3: filing */
+  .efile { background: #fff; border: 1px solid var(--rule); box-shadow: 0 26px 50px -30px rgba(14,17,22,.3);
+    padding: clamp(22px, 2.6vw, 34px); position: relative; text-align: left; }
+  .efile .fh { font-family: "JetBrains Mono"; font-size: 9.5px; letter-spacing: .24em; color: var(--mut); text-transform: uppercase; }
+  .efile .ft { font-family: "Space Grotesk"; font-weight: 600; font-size: clamp(19px, 2vw, 24px); margin-top: 10px; }
+  .efile .fl { height: 8px; background: rgba(14,17,22,.07); margin-top: 12px; transform-origin: left; will-change: transform; }
+  .efile .fl.a { width: 86%; } .efile .fl.b { width: 68%; } .efile .fl.c { width: 78%; }
+  .fstamp { position: absolute; right: 20px; top: 18px; padding: 10px 18px; border: 3px solid var(--cobalt); color: var(--cobalt);
+    font-family: "JetBrains Mono"; font-weight: 700; font-size: 17px; letter-spacing: .16em;
+    transform: rotate(-7deg) scale(3); opacity: 0; will-change: transform, opacity; }
+  .fstamp small { display: block; font-size: 8px; letter-spacing: .12em; margin-top: 3px; font-weight: 400; }
+
+  /* act 4: photo */
+  .yphoto { position: absolute; inset: 0; z-index: 1; }
+  .yphoto .im { position: absolute; inset: -5%; background: center/cover no-repeat
+    url('https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=2200&q=80'); will-change: transform;
+    filter: saturate(.85) brightness(.92); }
+  .yphoto .sc { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(244,246,248,.94) 0%, rgba(244,246,248,.62) 45%, rgba(244,246,248,.1) 100%); }
+
+  /* ---------- proof ---------- */
+  .proof { position: relative; background: var(--ink); color: #F4F6F8; padding: clamp(12vh, 15vh, 18vh) clamp(18px, 5vw, 24px); }
+  .proof .wrap { max-width: 1080px; margin: 0 auto; }
+  .proof .kick { font-family: "JetBrains Mono"; font-size: 11px; letter-spacing: .3em; text-transform: uppercase; color: #7C97FF; }
+  .proof h2 { font-family: "Space Grotesk"; font-weight: 600; font-size: clamp(28px, 4.6vw, 56px); letter-spacing: -.025em; line-height: 1.05; margin: 14px 0 0; max-width: 20ch; }
+  .proof .grid { margin-top: clamp(30px, 5vw, 52px); display: grid; grid-template-columns: repeat(3, 1fr); gap: clamp(14px, 2vw, 22px); }
+  @media (max-width: 820px){ .proof .grid { grid-template-columns: 1fr; } }
+  .proof .p { border: 1px solid rgba(244,246,248,.14); padding: clamp(20px, 2.4vw, 28px); will-change: transform, opacity; }
+  .proof .p b { font-family: "JetBrains Mono"; font-weight: 700; font-size: clamp(26px, 3vw, 38px); color: #7C97FF; display: block; font-variant-numeric: tabular-nums; }
+  .proof .p span { font-size: 13.5px; color: #9CA3AF; display: block; margin-top: 8px; line-height: 1.6; }
+
+  /* ---------- close ---------- */
+  .close { position: relative; background: var(--ice); padding: clamp(14vh, 18vh, 20vh) clamp(18px, 5vw, 24px) 7vh; }
+  .close .wrap { max-width: 1080px; margin: 0 auto; }
+  .close h2 { font-family: "Space Grotesk"; font-weight: 600; font-size: clamp(30px, 5vw, 64px); letter-spacing: -.03em; line-height: 1.02; margin: 0; max-width: 16ch; }
+  .close h2 .c { color: var(--cobalt); }
+  .close .sub { margin: 18px 0 0; font-size: clamp(14.5px, 1.6vw, 17px); color: #4B5563; max-width: 50ch; line-height: 1.65; }
+  .close .row { margin-top: clamp(28px, 4vw, 44px); display: flex; gap: 12px; flex-wrap: wrap; }
+  .close .go { display: inline-flex; align-items: center; gap: 10px; background: var(--cobalt); color: #fff; font-weight: 600; font-size: 15px; padding: 15px 28px; text-decoration: none; }
+  .close .alt { display: inline-flex; align-items: center; gap: 10px; color: var(--ink); border: 1px solid rgba(14,17,22,.25); font-weight: 600; font-size: 15px; padding: 15px 28px; text-decoration: none; }
+  .close .base { margin-top: clamp(48px, 8vw, 80px); padding-top: 22px; border-top: 1px solid var(--rule);
+    display: flex; justify-content: space-between; font-size: 12px; color: var(--mut); flex-wrap: wrap; gap: 10px; }
+  .close .base .bm { font-family: "Space Grotesk"; font-weight: 700; font-size: 16px; color: var(--ink); }
+
+  /* settings drawer */
+  .setbtn { position: fixed; left: 20px; bottom: 20px; z-index: 60; width: 44px; height: 44px; border-radius: 50%;
+    background: var(--ink); color: #fff; border: none; cursor: pointer; box-shadow: 0 10px 26px -10px rgba(14,17,22,.6);
+    display: grid; place-items: center; }
+  .setbtn svg { width: 20px; height: 20px; }
+  .setpanel { position: fixed; left: 20px; bottom: 74px; z-index: 60; width: min(340px, calc(100vw - 40px));
+    background: #fff; border: 1px solid var(--rule); border-radius: 16px; box-shadow: 0 30px 70px -30px rgba(14,17,22,.5);
+    padding: 18px 18px 20px; transform: translateY(12px) scale(.98); opacity: 0; pointer-events: none; transition: all .28s cubic-bezier(.2,.8,.2,1);
+    max-height: 78vh; overflow-y: auto; }
+  .setpanel.open { transform: none; opacity: 1; pointer-events: auto; }
+  .setpanel h4 { font-family: "Space Grotesk"; font-size: 14px; font-weight: 600; margin: 0 0 2px; }
+  .setpanel .hint { font-size: 11px; color: var(--mut); margin: 0 0 14px; }
+  .setpanel .grp { margin-top: 16px; }
+  .setpanel .lab { font-family: "JetBrains Mono"; font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--mut); display: flex; justify-content: space-between; }
+  .setpanel input[type=range] { width: 100%; margin: 8px 0 0; accent-color: var(--cobalt); }
+  .setpanel .imgrow { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
+  .setpanel .thumb { width: 42px; height: 30px; border-radius: 6px; background: #eee center/cover no-repeat; border: 1px solid var(--rule); flex: 0 0 auto; }
+  .setpanel .imgrow input[type=text] { flex: 1; min-width: 0; font-size: 11px; font-family: "JetBrains Mono"; padding: 6px 8px;
+    border: 1px solid var(--rule); border-radius: 7px; color: var(--ink); }
+  .setpanel .up { font-size: 10px; font-weight: 600; color: var(--cobalt); cursor: pointer; white-space: nowrap; border: 1px solid rgba(31,79,255,.3); padding: 6px 9px; border-radius: 7px; }
+  .setpanel .up input { display: none; }
+  .setpanel .apply { margin-top: 16px; width: 100%; background: var(--cobalt); color: #fff; border: none; font-weight: 600; font-size: 13px;
+    padding: 11px; border-radius: 9px; cursor: pointer; font-family: inherit; }
+  @media (max-width: 620px){ .setbtn { left: 14px; bottom: 14px; } .setpanel { left: 14px; bottom: 66px; } }
+
+  .setpanel .sw { position: relative; display: inline-block; width: 36px; height: 20px; }
+  .setpanel .sw input { display: none; }
+  .setpanel .sw span { position: absolute; inset: 0; border-radius: 99px; background: rgba(14,17,22,.18); transition: background .25s ease; cursor: pointer; }
+  .setpanel .sw span::after { content: ""; position: absolute; left: 2px; top: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: transform .25s ease; box-shadow: 0 1px 3px rgba(0,0,0,.3); }
+  .setpanel .sw input:checked + span { background: var(--cobalt); }
+  .setpanel .sw input:checked + span::after { transform: translateX(16px); }
+
+  a:focus-visible { outline: 2px solid var(--cobalt); outline-offset: 3px; }
+  @media (prefers-reduced-motion: reduce){ .hero .cue .ln { animation: none; } }
+</style>
+</head>
+<body>
+
+<nav id="nav">
+  <div class="brand"><i></i>LEDGERLINE</div>
+  <div class="links"><a href="#">Individuals</a><a href="#">Small business</a><a href="#">Year-round</a><a href="#">Pricing</a></div>
+  <a href="#" class="cta">Start my return</a>
+</nav>
+
+<div class="rn" id="rn">
+  <div class="mo" id="moRead">JAN</div>
+  <div class="amt" id="amtRead">−$8,400</div>
+  <div class="lbl" id="lblRead">Projected owed</div>
+  <div class="rail"><i id="railFill"></i></div>
+</div>
+
+<!-- HERO -->
+<header class="hero" data-hero>
+  <div class="slides" id="slides">
+    <div class="sl on" data-src="https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=2400&q=82"></div>
+    <div class="sl" data-src="https://images.unsplash.com/photo-1638913662252-70efce1e60a7?auto=format&fit=crop&w=2400&q=82"></div>
+    <div class="sl" data-src="https://images.unsplash.com/photo-1526628953301-3e589a6a8b74?auto=format&fit=crop&w=2400&q=82"></div>
+    <div class="sl" data-src="https://images.unsplash.com/photo-1450101499163-c8848c66ca85?auto=format&fit=crop&w=2400&q=82"></div>
+  </div>
+  <div class="tint"></div>
+  <div class="mesh" id="heroMesh"></div>
+  <div id="heroCurve"><svg id="curveSvg" preserveAspectRatio="none"></svg>
+    <div class="herostat" id="heroStat"><span class="hslabel">Projected&nbsp;·&nbsp;<b id="hsMonth">January</b></span><span class="hsnum neg" id="hsNum">−$8,400</span></div>
+  </div>
+  <div class="sldots" id="slDots"><i class="on"></i><i></i><i></i><i></i></div>
+  <div class="inner">
+    <div class="kick" id="heroKick">Tax preparation &amp; strategy · CPA led</div>
+    <h1 id="heroH1">A year of taxes,<br><span class="c">compressed to one scroll.</span></h1>
+    <p class="tag" id="heroTag">Most people meet their tax number once, in April, as a surprise. Our clients watch it move all year, and steer it. Scroll through a client's year and watch the number swing.</p>
+  </div>
+  <div class="cue"><span class="ln"></span><span>Scroll · Jan → Apr 15</span></div>
+</header>
+
+<!-- STATEMENT -->
+<section class="statement" data-stmt>
+  <p id="stmt">
+    <span class="ln"><span data-l="0">Your tax bill is not an event.</span></span>
+    <span class="ln"><span data-l="1">It is a number that moves</span></span>
+    <span class="ln"><span data-l="2">every month, and it moves</span></span>
+    <span class="ln"><span data-l="3"><span class="c">whether you watch it or not.</span></span></span>
+  </p>
+</section>
+
+<!-- ===== THE YEAR ===== -->
+<section class="year" data-year>
+  <div class="pin">
+    <div class="ystage">
+      <div id="yearBg"><div class="photo" id="yearPhoto"></div><div class="wash" id="yearWash"></div><canvas id="yearCv"></canvas><div class="edge"></div></div>
+      <div class="gridbg"></div>
+
+      <div class="ruler" id="ruler">
+        <div class="cap"><span class="yr">TAX YEAR 2025</span><span>THE CLIENT'S YEAR, MONTH BY MONTH</span></div>
+        <div class="line" id="rulerLine"><i class="fill" id="rulerFill"></i></div>
+        <span class="est" data-est="0.2258"><i>Q1 EST</i></span>
+        <span class="est" data-est="0.3548"><i>Q2 EST</i></span>
+        <span class="est" data-est="0.5484"><i>Q3 EST</i></span>
+        <span class="est" data-est="0.8065"><i>Q4 EST</i></span>
+        <span class="flag" id="dlFlag"><b>APR 15 · FILE</b></span>
+        <div class="handle" id="rulerHandle"><div class="pill"><span class="mo" id="handleMo">JAN</span><span class="am" id="handleAm">−$8.4k</span></div><i></i></div>
+        <div class="mos" id="mosRow"></div>
+      </div>
+
+      <!-- ACT 0: the shoebox -->
+      <div class="yact" data-y="0">
+        <div class="ycopy">
+          <div class="num">January · Intake</div>
+          <h2>The shoebox <span class="c">arrives.</span></h2>
+          <p class="lead">Receipts, 1099s, a laptop bag of PDFs. We take it exactly as it comes. Within a week, every document is read, sorted, and searchable.</p>
+        </div>
+        <div class="prop">
+          <div class="docpile">
+            <div class="pdoc" data-pd="0" style="top:0"><b>Form 1099-NEC</b>Client payments · $148,200<span class="tag2">SORTED</span></div>
+            <div class="pdoc" data-pd="1" style="top:22%"><b>Receipts folder</b>312 items · auto-categorized<span class="tag2">SORTED</span></div>
+            <div class="pdoc" data-pd="2" style="top:44%"><b>Payroll summaries</b>2 contractors · W-9 verified<span class="tag2">SORTED</span></div>
+            <div class="pdoc" data-pd="3" style="top:66%"><b>Prior-year return</b>3 missed items flagged<span class="tag2">FLAGGED</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ACT 1: the ledger -->
+      <div class="yact" data-y="1">
+        <div class="ycopy">
+          <div class="num">Feb – Aug · The ledger</div>
+          <h2>Watch the number <span class="c">change direction.</span></h2>
+          <p class="lead">Each deduction we substantiate moves the number in the corner. This is the part software skips and averages. We don't.</p>
+        </div>
+        <div class="prop">
+          <div class="ledger">
+            <div class="lh"><span>Deduction</span><span>Impact</span></div>
+            <div class="lrow" data-lr="0"><div class="n">Home office, actual method<span>218 sq ft · exclusive use documented</span></div><div class="v">+$3,120</div></div>
+            <div class="lrow" data-lr="1"><div class="n">Vehicle &amp; mileage<span>11,400 business miles reconstructed</span></div><div class="v">+$7,640</div></div>
+            <div class="lrow" data-lr="2"><div class="n">Equipment §179<span>Full first-year expensing</span></div><div class="v">+$4,890</div></div>
+            <div class="lrow" data-lr="3"><div class="n">R&amp;D credit<span>Qualifying development hours</span></div><div class="v">+$2,750</div></div>
+            <div class="lrow" data-lr="4"><div class="n">Health premiums<span>Self-employed deduction</span></div><div class="v">+$2,730</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ACT 2: december moves -->
+      <div class="yact" data-y="2">
+        <div class="ycopy">
+          <div class="num">December · Strategy</div>
+          <h2>The moves only <span class="c">December allows.</span></h2>
+          <p class="lead">Retirement contributions, timed purchases, harvested losses. Two weeks in December decide more than the whole spring.</p>
+        </div>
+        <div class="prop">
+          <div class="ledger">
+            <div class="lh"><span>Year-end move</span><span>Impact</span></div>
+            <div class="lrow" data-dr="0"><div class="n">Solo 401(k) contribution<span>Made Dec 22, before the window closed</span></div><div class="v">+$6,440</div></div>
+            <div class="lrow" data-dr="1"><div class="n">Loss harvesting<span>Offset against Q2 gains</span></div><div class="v">+$1,980</div></div>
+            <div class="lrow" data-dr="2"><div class="n">Q4 estimated payment<span>Penalty avoided entirely</span></div><div class="v">+$580</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ACT 3: filing -->
+      <div class="yact" data-y="3">
+        <div class="ycopy">
+          <div class="num">April 15 · 11:02 AM</div>
+          <h2>Filed. Accepted. <span class="c">Done.</span></h2>
+          <p class="lead">E-filed with every deduction substantiated and an audit file already assembled behind it. The refund hits in 9 days.</p>
+        </div>
+        <div class="prop">
+          <div class="efile">
+            <div class="fstamp" id="fstamp">ACCEPTED<small>IRS E-FILE · APR 15, 11:02 AM</small></div>
+            <div class="fh">Form 1040 · Tax year 2025</div>
+            <div class="ft">Federal return — M. Okafor</div>
+            <div class="fl a" data-f="0"></div><div class="fl b" data-f="1"></div><div class="fl c" data-f="2"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ACT 4: what you keep -->
+      <div class="yact" data-y="4">
+        <div class="yphoto"><div class="im" id="yIm"></div><div class="sc"></div></div>
+        <div class="ycopy">
+          <div class="num">After · What you keep</div>
+          <h2>From owing $8,400 to a <span class="c">$12,730 refund.</span></h2>
+          <p class="lead">Same income. Same year. Different preparation. That swing is not luck, it is twelve months of paying attention.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- PROOF -->
+<section class="proof" data-proof>
+  <div class="wrap">
+    <div class="kick">The pattern holds</div>
+    <h2>What a year of attention is worth.</h2>
+    <div class="grid">
+      <div class="p" data-pr="0"><b data-cnt="21100">$0</b><span>Average swing, first-year clients, owed to refunded. Illustrative for this concept.</span></div>
+      <div class="p" data-pr="1"><b data-cnt="9">0</b><span>Days, average, from filing to refund landing, via e-file with direct deposit.</span></div>
+      <div class="p" data-pr="2"><b data-cnt="0">$0</b><span>Surprise April bills across our year-round clients last season. The number you meet in April should be old news.</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- CLOSE -->
+<footer class="close">
+  <div class="wrap">
+    <h2>Your year is already <span class="c">moving.</span></h2>
+    <p class="sub">Bring us the shoebox, or just last year's return. We will show you what it says about next April within one meeting, flat fee, no surprises.</p>
+    <div class="row">
+      <a href="#" class="go">Start my return →</a>
+      <a href="#" class="alt">Book a 20-minute review</a>
+    </div>
+    <div class="base"><span class="bm">LEDGERLINE</span><span>A year, compressed. © 2026</span></div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var CFG = { slideSecs: 4.6, drawSecs: 3.6, bgOn: true, bgImage: null, images: [
+    'https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=2400&q=82',
+    'https://images.unsplash.com/photo-1638913662252-70efce1e60a7?auto=format&fit=crop&w=2400&q=82',
+    'https://images.unsplash.com/photo-1526628953301-3e589a6a8b74?auto=format&fit=crop&w=2400&q=82',
+    'https://images.unsplash.com/photo-1450101499163-c8848c66ca85?auto=format&fit=crop&w=2400&q=82'
+  ]};
+  function clamp(v,a,b){ return v<a?a:(v>b?b:v); }
+  function band(p,a,b){ return clamp((p-a)/(b-a),0,1); }
+  function smooth(v){ v=clamp(v,0,1); return v*v*(3-2*v); }
+  function lerp(a,b,t){ return a+(b-a)*t; }
+  function money(n){ var s=Math.round(Math.abs(n)).toLocaleString('en-US'); return (n<0?'−$':'+$')+s; }
+
+  var moRead=document.getElementById('moRead'), amtRead=document.getElementById('amtRead'), lblRead=document.getElementById('lblRead');
+  var railFill=document.getElementById('railFill'), rn=document.getElementById('rn');
+  var rulerFill=document.getElementById('rulerFill');
+  var rulerLine=document.getElementById('rulerLine'), rulerHandle=document.getElementById('rulerHandle'), handleMo=document.getElementById('handleMo'), handleAm=document.getElementById('handleAm');
+  var ruler=document.getElementById('ruler'), dlFlag=document.getElementById('dlFlag');
+  var ests=[].slice.call(document.querySelectorAll('.ruler .est'));
+  var heroCurveWrap=document.getElementById('heroCurve'), curveSvg=document.getElementById('curveSvg');
+  var hsNum=document.getElementById('hsNum'), hsMonth=document.getElementById('hsMonth');
+  var MONTHFULL=['January','February','March','April','May','June','July','August','September','October','November','December','January','February','March','April 15'];
+  var heroMesh=document.getElementById('heroMesh');
+  var slides=[].slice.call(document.querySelectorAll('#slides .sl'));
+  var slDots=[].slice.call(document.querySelectorAll('#slDots i'));
+  slides.forEach(function(s){ var img=new Image(); img.onload=function(){ s.style.backgroundImage="url('"+s.getAttribute('data-src')+"')"; }; img.src=s.getAttribute('data-src'); });
+  var slIdx=0, slT=0;
+  function advanceSlides(dt){
+    slT+=dt;
+    if(slT>CFG.slideSecs){
+      slT=0; slIdx=(slIdx+1)%slides.length;
+      slides.forEach(function(s,i){ s.classList.toggle('on', i===slIdx); });
+      slDots.forEach(function(d,i){ d.classList.toggle('on', i===slIdx); });
+    }
+  }
+  var heroKick=document.getElementById('heroKick'), heroH1=document.getElementById('heroH1'), heroTag=document.getElementById('heroTag');
+  var stmt=document.querySelector('[data-stmt]');
+  var stmtLines=[].slice.call(document.querySelectorAll('#stmt [data-l]'));
+  var yearSec=document.querySelector('[data-year]');
+  var yacts=[].slice.call(document.querySelectorAll('.yact'));
+  var pdocs=[].slice.call(document.querySelectorAll('.pdoc'));
+  var lrows=[].slice.call(document.querySelectorAll('[data-lr]'));
+  var drows=[].slice.call(document.querySelectorAll('[data-dr]'));
+  var fls=[].slice.call(document.querySelectorAll('.efile .fl'));
+  var fstamp=document.getElementById('fstamp');
+  var yIm=document.getElementById('yIm');
+  var proofSec=document.querySelector('[data-proof]');
+  var prs=[].slice.call(document.querySelectorAll('.proof .p'));
+  var cnts=[].slice.call(document.querySelectorAll('[data-cnt]'));
+
+  var WIN=[[0.00,0.20],[0.17,0.44],[0.42,0.62],[0.60,0.80],[0.78,1.00]];
+  var MOS=['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC','JAN','FEB','MAR','APR'];
+
+  /* the number's journey: piecewise targets across the year (owed -> refund) */
+  var AMT=[
+    [0.00, -8400, 'Projected owed'],
+    [0.16, -8400, 'Projected owed'],
+    [0.24, -6200, 'Projected owed'],
+    [0.34, -1100, 'Projected owed'],
+    [0.44,  2100, 'Projected refund'],
+    [0.54,  3730, 'Projected refund'],
+    [0.62,  9000, 'Projected refund'],
+    [0.72, 12730, 'Projected refund'],
+    [0.88, 12730, 'Refund, accepted'],
+    [1.00, 12730, 'Refund, landed']
+  ];
+  function amtAt(p){
+    for(var i=0;i<AMT.length-1;i++){
+      if(p<=AMT[i+1][0]){
+        var t=smooth(band(p,AMT[i][0],AMT[i+1][0]));
+        return [lerp(AMT[i][1],AMT[i+1][1],t), p<0.8?AMT[i+1][2]:AMT[i+1][2]];
+      }
+    }
+    return [AMT[AMT.length-1][1], AMT[AMT.length-1][2]];
+  }
+
+  /* month ticks + labels on the ruler */
+  var mosRow=document.getElementById('mosRow'), mosSpans=[];
+  (function(){
+    if(!rulerLine) return;
+    for(var i=0;i<=15;i++){
+      var tk=document.createElement('span');
+      tk.className='tick'+((i%3===0)?' q':'');
+      tk.style.left=(i/15*100)+'%';
+      rulerLine.parentNode.insertBefore(tk, rulerLine.nextSibling);
+    }
+    if(mosRow){
+      for(var i=0;i<=15;i++){
+        var sp=document.createElement('span');
+        sp.textContent=MOS[i]; sp.style.left=(i/15*100)+'%';
+        sp.setAttribute('data-mi', i);
+        mosRow.appendChild(sp); mosSpans.push(sp);
+      }
+    }
+    ests.forEach(function(e){ e.style.left=(parseFloat(e.getAttribute('data-est'))*100)+'%'; });
+    function relayoutMonths(){
+      var narrow = window.innerWidth < 760, veryNarrow = window.innerWidth < 480;
+      mosSpans.forEach(function(sp,i){
+        var show = veryNarrow ? (i%3===0) : (narrow ? (i%2===0) : true);
+        sp.style.display = show ? '' : 'none';
+      });
+    }
+    relayoutMonths();
+    window.addEventListener('resize', relayoutMonths);
+  })();
+
+  /* ---- hero curve: smooth gradient spline with glow + area fill ---- */
+  function catmullPath(pts){
+    // Catmull-Rom -> cubic bezier smoothing
+    var d='M'+pts[0][0].toFixed(1)+' '+pts[0][1].toFixed(1);
+    for(var i=0;i<pts.length-1;i++){
+      var p0=pts[i-1]||pts[i], p1=pts[i], p2=pts[i+1], p3=pts[i+2]||pts[i+1];
+      var c1x=p1[0]+(p2[0]-p0[0])/6, c1y=p1[1]+(p2[1]-p0[1])/6;
+      var c2x=p2[0]-(p3[0]-p1[0])/6, c2y=p2[1]-(p3[1]-p1[1])/6;
+      d+=' C'+c1x.toFixed(1)+' '+c1y.toFixed(1)+' '+c2x.toFixed(1)+' '+c2y.toFixed(1)+' '+p2[0].toFixed(1)+' '+p2[1].toFixed(1);
+    }
+    return d;
+  }
+  var svgns='http://www.w3.org/2000/svg';
+  function buildCurve(){
+    if(!curveSvg) return;
+    var box=heroCurveWrap.getBoundingClientRect();
+    var VW=Math.max(320, box.width), VH=Math.max(160, box.height);
+    curveSvg.setAttribute('viewBox','0 0 '+VW+' '+VH);
+    curveSvg.innerHTML=
+      '<defs>'+
+       '<linearGradient id="cgrad" x1="0" y1="0" x2="1" y2="0">'+
+         '<stop offset="0" stop-color="#FF5C4D"/><stop offset="0.4" stop-color="#E0574A"/>'+
+         '<stop offset="0.5" stop-color="#8A7BE8"/><stop offset="0.7" stop-color="#3F6BFF"/><stop offset="1" stop-color="#5C8BFF"/></linearGradient>'+
+       '<linearGradient id="cfill" x1="0" y1="0" x2="0" y2="1">'+
+         '<stop offset="0" stop-color="#2F6BFF" stop-opacity=".46"/><stop offset="0.55" stop-color="#2F6BFF" stop-opacity=".12"/><stop offset="1" stop-color="#2F6BFF" stop-opacity="0"/></linearGradient>'+
+       '<filter id="cglow" x="-20%" y="-60%" width="140%" height="220%"><feGaussianBlur stdDeviation="5" result="b"/>'+
+         '<feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>'+
+      '</defs>';
+    var zeroY=VH*0.56, amp=VH*0.40;                       // zero line low so owed dips, refund rises
+    // zero baseline + label
+    var zline=document.createElementNS(svgns,'line');
+    zline.setAttribute('x1',0); zline.setAttribute('y1',zeroY); zline.setAttribute('x2',VW); zline.setAttribute('y2',zeroY);
+    zline.setAttribute('stroke','rgba(247,250,255,.28)'); zline.setAttribute('stroke-width',1); zline.setAttribute('stroke-dasharray','2 7');
+    curveSvg.appendChild(zline);
+    var zlbl=document.createElementNS(svgns,'text');
+    zlbl.setAttribute('x',12); zlbl.setAttribute('y',zeroY-8); zlbl.setAttribute('fill','rgba(201,211,230,.85)');
+    zlbl.setAttribute('font-family','JetBrains Mono'); zlbl.setAttribute('font-size',11); zlbl.setAttribute('letter-spacing','.08em');
+    zlbl.textContent='$0 · break-even'; curveSvg.appendChild(zlbl);
+    // sample points in this box's coordinate space
+    var N=60, pts=[]; window.__curvePts=[];
+    for(var i=0;i<=N;i++){
+      var p=i/N, v=amtAt(p)[0], yy=zeroY-(v/12730)*amp, xx=p*VW;
+      pts.push([xx,yy]); window.__curvePts.push([xx,yy,v]);
+    }
+    var dLine=catmullPath(pts);
+    var dArea='M0 '+VH+' L'+dLine.slice(1)+' L'+VW+' '+VH+' Z';
+    var area=document.createElementNS(svgns,'path');
+    area.setAttribute('d',dArea); area.setAttribute('fill','url(#cfill)');
+    curveSvg.appendChild(area);
+    var line=document.createElementNS(svgns,'path');
+    line.setAttribute('id','curveLine'); line.setAttribute('d',dLine); line.setAttribute('fill','none');
+    line.setAttribute('stroke','url(#cgrad)'); line.setAttribute('stroke-width', VW<640?3.5:4.5); line.setAttribute('stroke-linecap','round');
+    line.setAttribute('filter','url(#cglow)');
+    curveSvg.appendChild(line);
+    var L=line.getTotalLength();
+    line.style.strokeDasharray=L; line.style.strokeDashoffset=L;
+    window.__curveLine=line; window.__curveLen=L;
+    var halo=document.createElementNS(svgns,'circle');
+    halo.setAttribute('id','curveHalo'); halo.setAttribute('r', VW<640?10:13); halo.setAttribute('fill','#2F6BFF'); halo.setAttribute('opacity','.3'); halo.setAttribute('filter','url(#cglow)');
+    curveSvg.appendChild(halo); window.__curveHalo=halo;
+    var mk=document.createElementNS(svgns,'circle');
+    mk.setAttribute('id','curveMk'); mk.setAttribute('r', VW<640?5:6); mk.setAttribute('fill','#fff'); mk.setAttribute('stroke','#FF5C4D'); mk.setAttribute('stroke-width','3.5');
+    curveSvg.appendChild(mk); window.__curveMk=mk;
+  }
+  buildCurve();
+  var __curveRT; window.addEventListener('resize', function(){ clearTimeout(__curveRT); __curveRT=setTimeout(buildCurve, 160); });
+
+  /* ---- animated fiscal-flow backdrop ---- */
+  var yearBg=document.getElementById('yearBg'), yearCv=document.getElementById('yearCv');
+  var yearWash=document.getElementById('yearWash'), yearPhoto=document.getElementById('yearPhoto');
+  var yctx=yearCv?yearCv.getContext('2d'):null, ycw=0, ych=0, figs=[];
+  function yearBgInit(){
+    if(!yearCv) return;
+    ycw=yearCv.width=yearCv.offsetWidth*devicePixelRatio;
+    ych=yearCv.height=yearCv.offsetHeight*devicePixelRatio;
+    var n = window.innerWidth<900 ? 10 : 20;
+    figs=[];
+    var pool=['+$3,120','+$7,640','+$4,890','$0','−$8,400','+$2,750','+$12,730','Q3','§179','+$2,730','+$6,440','APR 15'];
+    for(var i=0;i<n;i++){
+      figs.push({ x:Math.random()*ycw, y:Math.random()*ych, sp:(0.15+Math.random()*0.35)*devicePixelRatio,
+        a:0.05+Math.random()*0.12, sz:(10+Math.random()*16)*devicePixelRatio, txt:pool[i%pool.length], drift:Math.random()*6.28 });
+    }
+  }
+  function drawWave(t, baseY, amp, k, ph, col){
+    yctx.beginPath();
+    yctx.moveTo(0, ych);
+    for(var x=0;x<=ycw;x+=10*devicePixelRatio){
+      var xn=x/ycw;
+      var y=baseY + Math.sin(xn*k + ph)*amp + Math.sin(xn*k*2.3 + ph*1.5)*amp*0.32;
+      yctx.lineTo(x, y);
+    }
+    yctx.lineTo(ycw, ych); yctx.closePath();
+    var g=yctx.createLinearGradient(0, baseY-amp, 0, ych);
+    g.addColorStop(0, col); g.addColorStop(1, 'rgba(31,79,255,0)');
+    yctx.fillStyle=g; yctx.fill();
+  }
+  function renderYearBg(t, visible){
+    if(!yctx) return;
+    yctx.clearRect(0,0,ycw,ych);
+    if(!visible) return;
+    /* layered money-flow waves */
+    drawWave(t, ych*0.62, ych*0.10, 6.0, t*0.20, 'rgba(31,79,255,.10)');
+    drawWave(t, ych*0.72, ych*0.08, 7.4, t*0.16+2, 'rgba(90,120,255,.09)');
+    drawWave(t, ych*0.82, ych*0.06, 9.0, t*0.24+4, 'rgba(120,90,255,.08)');
+    /* faint drifting figures */
+    yctx.textAlign='center';
+    for(var i=0;i<figs.length;i++){
+      var f=figs[i];
+      if(!reduce){ f.y-=f.sp; f.x+=Math.sin(t*0.5+f.drift)*0.2*devicePixelRatio; }
+      if(f.y< -20) { f.y=ych+20; f.x=Math.random()*ycw; }
+      yctx.font='500 '+f.sz.toFixed(0)+'px "JetBrains Mono", monospace';
+      yctx.fillStyle='rgba(31,79,255,'+(f.a*(0.6+0.4*Math.sin(t*0.8+f.drift))).toFixed(3)+')';
+      yctx.fillText(f.txt, f.x, f.y);
+    }
+  }
+  yearBgInit();
+  window.addEventListener('resize', function(){ clearTimeout(window.__ybRT); window.__ybRT=setTimeout(yearBgInit,160); });
+
+    var vh=innerHeight, docH=0;
+  function recalc(){ vh=innerHeight; docH=document.body.scrollHeight; }
+  recalc(); window.addEventListener('resize', recalc);
+
+  var shown=-8400;
+  function loop(now){
+    var t=now/1000;
+    var y=window.scrollY||pageYOffset;
+
+    /* hero */
+    var hp=clamp(y/vh,0,1);
+    var hf=1-smooth(band(hp,0,.6));
+    heroKick.style.opacity=hf;
+    heroH1.style.opacity=hf; heroH1.style.transform='translateY('+(hp*-46)+'px)';
+    heroTag.style.opacity=1-smooth(band(hp,0,.46)); heroTag.style.transform='translateY('+(hp*-30)+'px)';
+    advanceSlides(0.016);
+    slides.forEach(function(s,i){
+      var k = i===slIdx ? (1.06 + Math.min(slT,CFG.slideSecs)*0.006) : 1.06;   /* slow Ken Burns on active */
+      s.style.transform='scale('+k.toFixed(3)+') translateY('+(hp*10).toFixed(1)+'px)';
+    });
+    if(heroMesh) heroMesh.style.transform='translate('+(Math.sin(t*0.2)*14).toFixed(1)+'px,'+(Math.cos(t*0.16)*10).toFixed(1)+'px)';
+    /* hero curve: draw in on load, parallax + fade on scroll out */
+    if(window.__curveLine){
+      var t0=window.__drawStart||0.3; var intro=smooth(clamp((t-t0)/CFG.drawSecs,0,1));  // self-draw over CFG.drawSecs
+      var drawT=Math.max(intro, hp);                            // and complete as you scroll
+      window.__curveLine.style.strokeDashoffset=(window.__curveLen*(1-drawT)).toFixed(1);
+      var pts=window.__curvePts, fidx=drawT*(pts.length-1), idx=Math.min(pts.length-1, Math.floor(fidx));
+      var pt=pts[idx];
+      window.__curveMk.setAttribute('cx',pt[0]); window.__curveMk.setAttribute('cy',pt[1]);
+      window.__curveMk.setAttribute('stroke', pt[2]>=0 ? '#3F6BFF' : '#FF5C4D');
+      window.__curveHalo.setAttribute('cx',pt[0]); window.__curveHalo.setAttribute('cy',pt[1]);
+      window.__curveHalo.setAttribute('fill', pt[2]>=0 ? '#2F6BFF' : '#FF5C4D');
+      heroCurveWrap.style.opacity=(1-smooth(band(hp,0,.7))).toFixed(3);
+      heroCurveWrap.style.transform='translateY('+(hp*40).toFixed(1)+'px)';
+      /* the counting number rides the draw */
+      if(hsNum){
+        var vNow=pt[2];
+        hsNum.textContent=money(vNow);
+        hsNum.className='hsnum '+(vNow>=0?'pos':'neg');
+        var mi=Math.min(15, Math.round(drawT*15));
+        if(hsMonth) hsMonth.textContent = drawT>0.985 ? 'April 15' : MONTHFULL[mi];
+      }
+    }
+
+    /* statement */
+    var sr=stmt.getBoundingClientRect();
+    var sp=clamp((vh*.85-sr.top)/(sr.height*.7+vh*.5),0,1);
+    stmtLines.forEach(function(el,i){ var a=.08+i*.14, r=smooth(band(sp,a,a+.22)); el.style.opacity=r; el.style.transform='translateY('+((1-r)*100)+'%)'; });
+
+    /* ===== the year ===== */
+    var yr=yearSec.getBoundingClientRect(), ytot=yearSec.offsetHeight-vh;
+    var yp=clamp((-yr.top)/Math.max(1,ytot),0,1);
+    var inYear = yr.top < vh*0.5 && yr.bottom > vh*0.5;
+    var yNear = yr.top < vh*1.1 && yr.bottom > -vh*0.1;
+    renderYearBg(t, yNear && CFG.bgOn);
+    if(yearWash && CFG.bgOn){ yearWash.style.transform='translate('+(Math.sin(t*0.14)*18).toFixed(1)+'px,'+(Math.cos(t*0.11)*12 - yp*30).toFixed(1)+'px)'; }
+
+    var alphas=[], subs=[];
+    for(var i=0;i<5;i++){
+      var w=WIN[i], mid=(w[0]+w[1])/2, half=(w[1]-w[0])/2;
+      var d=(yp-mid)/half;
+      var al=smooth(1-Math.abs(clamp(d,-1,1)));
+      if(i===0 && yp<mid && yr.top<vh*0.25) al=Math.max(al, smooth(band(-yr.top/(vh*0.5),0,1))*(1-smooth(band(yp,w[1]-0.05,w[1]))));
+      if(i===4 && yp>=mid) al=1;
+      alphas.push(al); subs.push(band(yp,w[0],w[1]));
+    }
+    yacts.forEach(function(a,i){
+      a.style.opacity=alphas[i].toFixed(3);
+      a.style.pointerEvents=alphas[i]>.5?'auto':'none';
+      a.style.zIndex=alphas[i]>.5?6:5;
+      var c=a.querySelector('.ycopy');
+      if(c) c.style.transform=(innerWidth<900?'':'translateY(-50%) ')+'translateY('+((1-alphas[i])*20).toFixed(1)+'px)';
+      var pr2=a.querySelector('.prop');
+      if(pr2) pr2.style.opacity=alphas[i].toFixed(3);
+    });
+
+    /* ruler + tracker */
+    rulerFill.style.width=(yp*100).toFixed(2)+'%';
+    if(rulerHandle){ rulerHandle.style.left=(yp*100).toFixed(2)+'%'; }
+    var moI=Math.min(15, Math.floor(yp*15.999));
+    var moName = yp>0.985 ? 'APR 15' : MOS[moI];
+    moRead.textContent = moName;
+    if(handleMo) handleMo.textContent = moName;
+    if(handleAm){ var kv=shown/1000; handleAm.textContent=(shown<0?'−$':'+$')+Math.abs(kv).toFixed(1)+'k'; }
+    ests.forEach(function(e){ e.classList.toggle('lit', yp >= parseFloat(e.getAttribute('data-est'))-0.002); });
+    if(dlFlag) dlFlag.classList.toggle('lit', yp>0.97);
+    var nearI=Math.round(yp*15);
+    mosSpans.forEach(function(sp,i){ sp.classList.toggle('near', i===nearI); });
+    var av=amtAt(yp);
+    shown += (av[0]-shown)*0.16;
+    if(Math.abs(av[0]-shown)<8) shown=av[0];
+    amtRead.textContent=money(shown);
+    amtRead.classList.toggle('pos', shown>=0);
+    lblRead.textContent=av[1];
+    railFill.style.width=(yp*100).toFixed(1)+'%';
+    rn.classList.toggle('hide', !inYear && innerWidth<900);
+
+    /* act 0: docs stack in */
+    pdocs.forEach(function(p2,i){
+      var r=smooth(band(subs[0],0.12+i*0.16,0.32+i*0.16));
+      var idle=reduce?0:Math.sin(t*0.7+i*1.8)*0.3;
+      p2.style.opacity=r;
+      p2.style.transform='translateY('+((1-r)*46).toFixed(1)+'px) rotate('+((i%2?1:-1)*(1-r)*3+idle).toFixed(2)+'deg)';
+    });
+
+    /* act 1 + 2: ledger rows tick in */
+    lrows.forEach(function(r2,i){
+      var r=smooth(band(subs[1],0.1+i*0.13,0.3+i*0.13));
+      r2.style.opacity=r; r2.style.transform='translateX('+((1-r)*26).toFixed(1)+'px)';
+    });
+    drows.forEach(function(r2,i){
+      var r=smooth(band(subs[2],0.12+i*0.18,0.36+i*0.18));
+      r2.style.opacity=r; r2.style.transform='translateX('+((1-r)*26).toFixed(1)+'px)';
+    });
+
+    /* act 3: doc lines + ACCEPTED stamp */
+    fls.forEach(function(l,i){
+      var r=smooth(band(subs[3],0.08+i*0.09,0.3+i*0.09));
+      l.style.transform='scaleX('+r.toFixed(3)+')'; l.style.opacity=(0.4+0.6*r).toFixed(2);
+    });
+    var st=smooth(band(subs[3],0.55,0.72));
+    fstamp.style.opacity=st;
+    fstamp.style.transform='rotate(-7deg) scale('+lerp(3,1,st).toFixed(3)+')';
+
+    /* act 4 photo */
+    if(yIm) yIm.style.transform='scale('+lerp(1.12,1.02,smooth(subs[4])).toFixed(3)+')';
+
+    /* proof counters */
+    var pr=proofSec.getBoundingClientRect();
+    var pp=clamp((vh*.85-pr.top)/(vh*.8),0,1);
+    prs.forEach(function(p2,i){
+      var r=smooth(band(pp,0.05+i*0.12,0.4+i*0.12));
+      p2.style.opacity=r; p2.style.transform='translateY('+((1-r)*30)+'px)';
+    });
+    cnts.forEach(function(c,i){
+      var target=parseFloat(c.getAttribute('data-cnt'));
+      var r=smooth(band(pp,0.15+i*0.12,0.6+i*0.12));
+      var v=Math.round(target*r);
+      c.textContent = i===1 ? String(v) : '$'+v.toLocaleString('en-US');
+    });
+
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+
+  /* ===== settings drawer ===== */
+  var setBtn=document.getElementById('setBtn'), setPanel=document.getElementById('setPanel');
+  if(setBtn){
+    setBtn.addEventListener('click', function(){ setPanel.classList.toggle('open'); });
+    document.addEventListener('click', function(e){
+      if(setPanel.classList.contains('open') && !setPanel.contains(e.target) && e.target!==setBtn && !setBtn.contains(e.target))
+        setPanel.classList.remove('open');
+    });
+  }
+  function applyImage(i, src){
+    if(!slides[i]) return;
+    CFG.images[i]=src;
+    var img=new Image();
+    img.onload=function(){ slides[i].style.backgroundImage="url('"+src+"')"; };
+    img.src=src;
+  }
+  var imgRows=document.getElementById('imgRows');
+  if(imgRows){
+    CFG.images.forEach(function(src,i){
+      var row=document.createElement('div'); row.className='imgrow';
+      var th=document.createElement('div'); th.className='thumb'; th.style.backgroundImage="url('"+src+"')";
+      var tx=document.createElement('input'); tx.type='text'; tx.value=src; tx.placeholder='Image URL';
+      tx.addEventListener('change', function(){ applyImage(i, tx.value.trim()); th.style.backgroundImage="url('"+tx.value.trim()+"')"; });
+      var up=document.createElement('label'); up.className='up'; up.textContent='Upload';
+      var fi=document.createElement('input'); fi.type='file'; fi.accept='image/*';
+      fi.addEventListener('change', function(){
+        var f=fi.files[0]; if(!f) return;
+        var rd=new FileReader(); rd.onload=function(){ applyImage(i, rd.result); tx.value='(uploaded)'; th.style.backgroundImage="url('"+rd.result+"')"; }; rd.readAsDataURL(f);
+      });
+      up.appendChild(fi); row.appendChild(th); row.appendChild(tx); row.appendChild(up);
+      imgRows.appendChild(row);
+    });
+  }
+  var slSpeed=document.getElementById('slSpeed'), slSpeedVal=document.getElementById('slSpeedVal');
+  if(slSpeed) slSpeed.addEventListener('input', function(){ CFG.slideSecs=parseFloat(slSpeed.value); slSpeedVal.textContent=slSpeed.value+'s'; });
+  var drSpeed=document.getElementById('drSpeed'), drSpeedVal=document.getElementById('drSpeedVal');
+  if(drSpeed) drSpeed.addEventListener('input', function(){ CFG.drawSecs=parseFloat(drSpeed.value); drSpeedVal.textContent=drSpeed.value+'s';
+    /* re-trigger the draw so the new speed is visible */ window.__drawStart=performance.now()/1000; });
+
+  /* backdrop controls */
+  var bgToggle=document.getElementById('bgToggle'), bgUrl=document.getElementById('bgUrl'),
+      bgFile=document.getElementById('bgFile'), bgReset=document.getElementById('bgReset'),
+      bgThumb=document.getElementById('bgThumb');
+  function setBgImage(src){
+    CFG.bgImage=src;
+    if(src){ yearPhoto.style.backgroundImage="url('"+src+"')"; yearPhoto.style.display='block';
+             if(yearCv) yearCv.style.display='none'; if(yearWash) yearWash.style.display='none';
+             bgThumb.style.background="center/cover no-repeat url('"+src+"')"; }
+    else   { yearPhoto.style.display='none'; if(yearCv) yearCv.style.display=''; if(yearWash) yearWash.style.display='';
+             bgThumb.style.background='linear-gradient(135deg,#1F4FFF,#7C5CFF)'; bgUrl.value=''; }
+  }
+  if(bgToggle) bgToggle.addEventListener('change', function(){ CFG.bgOn=bgToggle.checked; yearBg.classList.toggle('off', !CFG.bgOn); });
+  if(bgUrl) bgUrl.addEventListener('change', function(){ var v=bgUrl.value.trim(); if(v) setBgImage(v); });
+  if(bgFile) bgFile.addEventListener('change', function(){ var f=bgFile.files[0]; if(!f) return;
+    var rd=new FileReader(); rd.onload=function(){ setBgImage(rd.result); bgUrl.value='(uploaded)'; }; rd.readAsDataURL(f); });
+  if(bgReset) bgReset.addEventListener('click', function(){ setBgImage(null); });
+})();
+</script>
+<button class="setbtn" id="setBtn" aria-label="Settings">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+</button>
+<div class="setpanel" id="setPanel">
+  <h4>Hero settings</h4>
+  <p class="hint">Live preview. Changes apply instantly.</p>
+  <div class="grp">
+    <div class="lab"><span>Slideshow images</span></div>
+    <div id="imgRows"></div>
+  </div>
+  <div class="grp">
+    <div class="lab"><span>Transition speed</span><span id="slSpeedVal">4.6s</span></div>
+    <input type="range" id="slSpeed" min="1.5" max="9" step="0.1" value="4.6">
+  </div>
+  <div class="grp">
+    <div class="lab"><span>Curve draw speed</span><span id="drSpeedVal">3.6s</span></div>
+    <input type="range" id="drSpeed" min="1" max="8" step="0.1" value="3.6">
+  </div>
+  <div class="grp" style="border-top:1px solid var(--rule); padding-top:14px;">
+    <div class="lab"><span>Timeline backdrop</span>
+      <label class="sw"><input type="checkbox" id="bgToggle" checked><span></span></label>
+    </div>
+    <div class="hint" style="margin:8px 0 0;">Animated by default. Add an image URL or upload to use a photo instead.</div>
+    <div class="imgrow" id="bgImgRow" style="margin-top:10px;">
+      <div class="thumb" id="bgThumb" style="background:linear-gradient(135deg,#1F4FFF,#7C5CFF)"></div>
+      <input type="text" id="bgUrl" placeholder="Background image URL">
+      <label class="up">Upload<input type="file" id="bgFile" accept="image/*"></label>
+    </div>
+    <div style="margin-top:8px;"><span class="up" id="bgReset" style="display:inline-block;border-color:rgba(14,17,22,.2);color:var(--mut);">Reset to animated</span></div>
+  </div>
+</div>
+</body>
+</html>
